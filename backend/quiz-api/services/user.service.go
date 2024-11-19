@@ -47,7 +47,7 @@ func (s *UserService) Register(username, password string) (*models.User, error) 
 // Login a user and return JWT token
 func (s *UserService) Login(username, password string) (*models.User, string, error) {
 	user, err := s.UserRepo.FindByUsername(username)
-	if err != nil {
+	if err != nil || user == nil {
 		return nil, "", errors.New("user not found")
 	}
 
