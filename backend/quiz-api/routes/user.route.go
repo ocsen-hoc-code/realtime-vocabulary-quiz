@@ -8,7 +8,7 @@ import (
 	"go.uber.org/dig"
 )
 
-func UserRoute(router *gin.Engine, container *dig.Container) error {
+func UserRoutes(router *gin.Engine, container *dig.Container) error {
 	err := container.Invoke(func(userController *controllers.UserController, jwtMiddleware middlewares.JWTMiddleware, loggingMiddleware middlewares.LoggingMiddleware) {
 		router.POST("/register", userController.Register)
 		router.POST("/login", userController.Login)

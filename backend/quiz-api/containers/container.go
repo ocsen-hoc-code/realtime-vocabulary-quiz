@@ -23,11 +23,24 @@ func BuildContainer() *dig.Container {
 	})
 
 	container.Provide(middlewares.NewLoggingMiddleware)
+	container.Provide(middlewares.NewAdminMiddleware)
 	container.Provide(middlewares.NewJWTMiddleware)
 
 	container.Provide(repositories.NewUserRepository)
 	container.Provide(services.NewUserService)
 	container.Provide(controllers.NewUserController)
+
+	container.Provide(repositories.NewQuizRepository)
+	container.Provide(services.NewQuizService)
+	container.Provide(controllers.NewQuizController)
+
+	container.Provide(repositories.NewQuestionRepository)
+	container.Provide(services.NewQuestionService)
+	container.Provide(controllers.NewQuestionController)
+
+	container.Provide(repositories.NewAnswerRepository)
+	container.Provide(services.NewAnswerService)
+	container.Provide(controllers.NewAnswerController)
 
 	return container
 }
