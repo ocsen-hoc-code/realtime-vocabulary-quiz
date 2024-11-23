@@ -1,0 +1,147 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: quiz_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - quiz_network
+
+  redis:
+    image: redis:latest
+    container_name: quiz_redis
+    environment:
+      - REDIS_PASSWORD=admin
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--requirepass", "admin"]
+    volumes:
+      - redisdata:/data
+    networks:
+      - quiz_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_container
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - quiz_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=elastic_pass
+      - xpack.security.enabled=true
+      - xpack.security.authc.api_key.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+    networks:
+      - quiz_network
+    restart: always
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.0
+    container_name: logstash
+    environment:
+      LS_JAVA_OPTS: "-Xms1g -Xmx1g"
+      ELASTIC_USER: elastic
+      ELASTIC_PASSWORD: elastic_pass
+      ELASTIC_HOSTS: http://elasticsearch:9200
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    ports:
+      - "5044:5044"
+    depends_on:
+      - elasticsearch
+    networks:
+      - quiz_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=elastic_pass
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - quiz_network
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kakfa_server
+    ports:
+      - '9093:9093'
+      - '9092:9092'
+    volumes:
+      - kafka_data:/bitnami
+    environment:
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+
+      - KAFKA_KRAFT_CLUSTER_ID=test
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=INTERNAL://:9092,CLIENT://:9093,CONTROLLER://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,CLIENT://localhost:9093
+
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN
+
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9094
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_SASL_MECHANISM_CONTROLLER_PROTOCOL=PLAIN
+
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:SASL_PLAINTEXT,CLIENT:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT
+
+      - KAFKA_CLIENT_USERS=kafka
+      - KAFKA_CLIENT_PASSWORDS=kafka
+      - KAFKA_INTER_BROKER_USER=admin
+      - KAFKA_INTER_BROKER_PASSWORD=admin
+    networks:
+      - quiz_network
+
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8084:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
+    networks:
+      - quiz_network
+
+volumes:
+  pgdata:
+  redisdata:
+  pgadmin_data:
+  es_data:
+  logstash:
+  kafka_data:
+
+networks:
+  quiz_network:
+    driver: bridge

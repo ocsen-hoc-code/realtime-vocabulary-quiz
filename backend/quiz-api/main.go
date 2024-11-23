@@ -14,6 +14,8 @@ func main() {
 
 	err := routes.RegisterRoutes(router, container)
 
+	containers.RunKafkaConsumer(container)
+
 	if err != nil {
 		panic(err)
 	}
