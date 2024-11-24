@@ -76,3 +76,14 @@ func (u *UserController) ChangePassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
+
+func (u *UserController) Logout(c *gin.Context) {
+	userID := c.GetUint("userID")
+	err := u.UserService.Logout(userID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logout successfully"})
+}

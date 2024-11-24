@@ -92,4 +92,8 @@ func (s *UserService) ChangePassword(userId uint, oldPassword, newPassword strin
 	return s.UserRepo.UpdatePassword(user.ID, string(hashedPassword))
 }
 
-// Helper function to generate JWT token
+// Logout a user
+func (s *UserService) Logout(userID uint) error {
+	err := s.Client.Delete(context.Background(), "user:"+fmt.Sprint(userID))
+	return err
+}

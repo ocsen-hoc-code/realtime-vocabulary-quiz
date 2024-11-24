@@ -13,6 +13,7 @@ func UserRoutes(router *gin.Engine, container *dig.Container) error {
 		router.POST("/register", userController.Register)
 		router.POST("/login", userController.Login)
 		router.POST("/change-password", gin.HandlerFunc(jwtMiddleware), userController.ChangePassword)
+		router.GET("/logout", gin.HandlerFunc(jwtMiddleware), userController.Logout)
 	})
 
 	return err
