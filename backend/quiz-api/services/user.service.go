@@ -1,21 +1,25 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"quiz-api/config"
 	"quiz-api/models"
 	"quiz-api/repositories"
 	"quiz-api/utils"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
 	UserRepo *repositories.UserRepository
+	Client   *config.RedisClient
 }
 
-func NewUserService(repo *repositories.UserRepository) *UserService {
-	return &UserService{UserRepo: repo}
+func NewUserService(repo *repositories.UserRepository, client *config.RedisClient) *UserService {
+	return &UserService{UserRepo: repo, Client: client}
 }
 
 // Register a new user
@@ -57,11 +61,14 @@ func (s *UserService) Login(username, password string) (*models.User, string, er
 	}
 
 	// Generate JWT token
-	token, err := utils.GenerateToken(user)
+	sessionUUID, token, err := utils.GenerateToken(user)
+
 	if err != nil {
 		return nil, "", err
 	}
 
+	// Store session UUID in Redis
+	s.Client.Set(context.Background(), "user:"+fmt.Sprint(user.ID), sessionUUID, 24*time.Hour)
 	return user, token, nil
 }
 

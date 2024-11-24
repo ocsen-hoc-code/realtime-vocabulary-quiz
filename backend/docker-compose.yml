@@ -134,6 +134,23 @@ services:
     networks:
       - quiz_network
 
+
+  scylla:
+    image: scylladb/scylla:latest
+    container_name: scylla
+    ports:
+      - "9042:9042"
+    volumes:
+      - scylla-data:/var/lib/scylla
+    networks:
+      - quiz_network
+    environment:
+      - SCYLLA_CLUSTER_NAME=SingleNodeCluster
+      - SCYLLA_API_ADDR=0.0.0.0
+      - SCYLLA_USER=admin
+      - SCYLLA_PASSWORD=admin
+    command: --smp 2
+
 volumes:
   pgdata:
   redisdata:
@@ -141,6 +158,7 @@ volumes:
   es_data:
   logstash:
   kafka_data:
+  scylla-data:
 
 networks:
   quiz_network:

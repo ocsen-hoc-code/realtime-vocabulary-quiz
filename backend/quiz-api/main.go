@@ -13,8 +13,7 @@ func main() {
 	router := gin.Default()
 
 	err := routes.RegisterRoutes(router, container)
-
-	containers.RunKafkaConsumer(container)
+	go containers.RunKafkaConsumer(container)
 
 	if err != nil {
 		panic(err)

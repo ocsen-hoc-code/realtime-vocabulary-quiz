@@ -84,3 +84,16 @@ func (ctrl *QuizController) DeleteQuiz(c *gin.Context) {
 
 	utils.SendSuccess(c, nil, "Quiz deleted successfully")
 }
+
+func (ctrl *QuizController) QuizExport(c *gin.Context) {
+	uuid := c.Param("uuid")
+	socketID := c.Query("socket_id")
+
+	err := ctrl.quizService.QuizExport(uuid, socketID)
+	if err != nil {
+		utils.SendError(c, 500, "Export failed")
+		return
+	}
+
+	utils.SendSuccess(c, nil, "Export Quiz successfully")
+}

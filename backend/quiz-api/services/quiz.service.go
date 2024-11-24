@@ -7,12 +7,13 @@ import (
 
 // QuizService provides business logic for quizzes
 type QuizService struct {
-	quizRepo *repositories.QuizRepository
+	quizRepo     *repositories.QuizRepository
+	kafkaService *KafkaService
 }
 
 // NewQuizService initializes a new QuizService
-func NewQuizService(quizRepo *repositories.QuizRepository) *QuizService {
-	return &QuizService{quizRepo: quizRepo}
+func NewQuizService(quizRepo *repositories.QuizRepository, kafkaService *KafkaService) *QuizService {
+	return &QuizService{quizRepo: quizRepo, kafkaService: kafkaService}
 }
 
 // CreateQuiz creates a new quiz
@@ -38,4 +39,9 @@ func (s *QuizService) UpdateQuiz(uuid string, updatedQuiz *models.Quiz) error {
 // DeleteQuiz deletes a quiz by its UUID
 func (s *QuizService) DeleteQuiz(uuid string) error {
 	return s.quizRepo.DeleteQuiz(uuid)
+}
+
+func (s *QuizService) QuizExport(uuid string, socketID string) error {
+	err := s.kafkaService.PublishMessage("quiz_export", uuid, socketID)
+	return err
 }

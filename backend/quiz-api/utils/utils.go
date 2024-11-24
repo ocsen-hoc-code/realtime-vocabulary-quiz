@@ -8,18 +8,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
-func GenerateToken(user *models.User) (string, error) {
+func GenerateToken(user *models.User) (string, string, error) {
+	sessionUUID := uuid.New()
 	claims := jwt.MapClaims{
-		"userID":   user.ID,
-		"username": user.Username,
-		"isAdmin":  user.IsAdmin,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
+		"user_id":      user.ID,
+		"session_uuid": sessionUUID,
+		"username":     user.Username,
+		"is_admin":     user.IsAdmin,
+		"exp":          time.Now().Add(time.Hour * 24).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	jwtToken, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	return sessionUUID.String(), jwtToken, err
 }
 
 // SuccessResponse represents a standard success response

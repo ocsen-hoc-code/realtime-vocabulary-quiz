@@ -16,6 +16,9 @@ func BuildContainer() *dig.Container {
 	container := dig.New()
 	container.Provide(config.InitDB)
 	container.Provide(config.NewLogger)
+	container.Provide(config.NewScyllaConfig)
+	container.Provide(config.NewScyllaDB)
+	container.Provide(config.NewRedisClient)
 
 	container.Provide(registry.RegisterTopics)
 	container.Provide(func(cfg services.KafkaConfig) *services.KafkaService {
@@ -48,7 +51,7 @@ func BuildContainer() *dig.Container {
 func RunKafkaConsumer(container *dig.Container) {
 	err := container.Invoke(func(kafkaService *services.KafkaService, cfg services.KafkaConfig) {
 		defer kafkaService.Close()
-		_ = kafkaService.PublishMessage("quiz_export", "test-key", "test-value")
+		// _ = kafkaService.PublishMessage("quiz_export", "test-key", "test-value")
 		go kafkaService.StartConsumer(cfg.Topics)
 		select {}
 	})

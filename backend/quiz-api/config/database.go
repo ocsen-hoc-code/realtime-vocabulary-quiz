@@ -74,5 +74,27 @@ func createAdminUser(db *gorm.DB) {
 		log.Fatal("Failed to create admin user:", err)
 	}
 
-	fmt.Println("Admin user created successfully!")
+	user1Password, _ := bcrypt.GenerateFromPassword([]byte("user1"), bcrypt.DefaultCost)
+	user1 := models.User{
+		Username: "user1",
+		Password: string(user1Password),
+		IsAdmin:  false,
+	}
+	// Save the admin user to the database
+	if err := db.Create(&user1).Error; err != nil {
+		log.Fatal("Failed to create user1:", err)
+	}
+
+	user2Password, _ := bcrypt.GenerateFromPassword([]byte("user2"), bcrypt.DefaultCost)
+	user2 := models.User{
+		Username: "user2",
+		Password: string(user2Password),
+		IsAdmin:  false,
+	}
+	// Save the admin user to the database
+	if err := db.Create(&user2).Error; err != nil {
+		log.Fatal("Failed to create user2:", err)
+	}
+
+	fmt.Println("Admin user and user exmaple are created successfully!")
 }

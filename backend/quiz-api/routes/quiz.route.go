@@ -20,6 +20,7 @@ func QuizRoutes(router *gin.Engine, container *dig.Container) error {
 			quizGroup.GET("/:uuid", quizController.GetQuiz)
 			quizGroup.PUT("/:uuid", quizController.UpdateQuiz)
 			quizGroup.DELETE("/:uuid", quizController.DeleteQuiz)
+			quizGroup.GET("/quiz-export/:uuid", quizController.QuizExport)
 		}
 	})
 
