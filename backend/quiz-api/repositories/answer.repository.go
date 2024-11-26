@@ -3,6 +3,7 @@ package repositories
 import (
 	"quiz-api/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -18,6 +19,7 @@ func NewAnswerRepository(db *gorm.DB) *AnswerRepository {
 
 // CreateAnswer creates a new answer
 func (r *AnswerRepository) CreateAnswer(answer *models.Answer) error {
+	answer.UUID = uuid.New().String()
 	return r.db.Create(answer).Error
 }
 

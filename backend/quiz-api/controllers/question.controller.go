@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"strconv"
 
 	"quiz-api/models"
@@ -39,16 +40,44 @@ func (ctrl *QuestionController) CreateQuestion(c *gin.Context) {
 // GetQuestionsByQuiz retrieves paginated questions for a quiz
 func (ctrl *QuestionController) GetQuestionsByQuiz(c *gin.Context) {
 	quizUUID := c.Param("uuid")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-
-	questions, err := ctrl.questionService.GetQuestionsByQuiz(quizUUID, page, limit)
-	if err != nil {
-		utils.SendError(c, 500, "Failed to retrieve questions")
+	if quizUUID == "" {
+		utils.SendError(c, 400, "Quiz UUID is required")
 		return
 	}
 
-	utils.SendSuccess(c, questions, "Questions retrieved successfully")
+	// Parse pagination parameters from query
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+
+	// Fetch paginated questions and total count
+	questions, total, err := ctrl.questionService.GetQuestionsByQuiz(quizUUID, page, limit)
+	if err != nil {
+		utils.SendError(c, 500, fmt.Sprintf("Failed to retrieve questions: %v", err))
+		return
+	}
+
+	// Calculate total pages
+	totalPages := (int(total) + limit - 1) / limit // Round up for remaining items
+
+	// Create response structure
+	response := map[string]interface{}{
+		"data": questions,
+		"pagination": map[string]interface{}{
+			"currentPage": page,
+			"pageSize":    limit,
+			"totalItems":  total,
+			"totalPages":  totalPages,
+		},
+	}
+
+	// Send response
+	utils.SendSuccess(c, response, "Questions retrieved successfully")
 }
 
 // UpdateQuestion updates an existing question

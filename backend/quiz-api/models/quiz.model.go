@@ -20,6 +20,8 @@ type Question struct {
 	QuizUUID    string    `gorm:"type:uuid;" json:"quiz_uuid"`
 	Description string    `json:"description"`
 	Position    int       `json:"position"`
+	Type        int       `json:"type"`
+	TimeLimit   int       `json:"time_limit"`
 	Answers     []Answer  `gorm:"foreignKey:QuestionUUID;" json:"answers,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`

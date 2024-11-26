@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+
 	"quiz-api/models"
 	"quiz-api/services"
 	"quiz-api/utils"
@@ -27,7 +29,7 @@ func (ctrl *AnswerController) CreateAnswer(c *gin.Context) {
 	}
 
 	if err := ctrl.answerService.CreateAnswer(&answer); err != nil {
-		utils.SendError(c, 500, "Failed to create answer")
+		utils.SendError(c, 500, fmt.Sprintf("Failed to create answer: %v", err))
 		return
 	}
 
@@ -37,9 +39,14 @@ func (ctrl *AnswerController) CreateAnswer(c *gin.Context) {
 // GetAnswersByQuestion retrieves all answers for a question
 func (ctrl *AnswerController) GetAnswersByQuestion(c *gin.Context) {
 	questionUUID := c.Param("uuid")
+	if questionUUID == "" {
+		utils.SendError(c, 400, "Question UUID is required")
+		return
+	}
+
 	answers, err := ctrl.answerService.GetAnswersByQuestion(questionUUID)
 	if err != nil {
-		utils.SendError(c, 500, "Failed to retrieve answers")
+		utils.SendError(c, 500, fmt.Sprintf("Failed to retrieve answers: %v", err))
 		return
 	}
 
@@ -49,6 +56,11 @@ func (ctrl *AnswerController) GetAnswersByQuestion(c *gin.Context) {
 // UpdateAnswer updates an existing answer
 func (ctrl *AnswerController) UpdateAnswer(c *gin.Context) {
 	uuid := c.Param("uuid")
+	if uuid == "" {
+		utils.SendError(c, 400, "Answer UUID is required")
+		return
+	}
+
 	var answer models.Answer
 	if err := c.ShouldBindJSON(&answer); err != nil {
 		utils.SendError(c, 400, "Invalid input data")
@@ -56,7 +68,7 @@ func (ctrl *AnswerController) UpdateAnswer(c *gin.Context) {
 	}
 
 	if err := ctrl.answerService.UpdateAnswer(uuid, &answer); err != nil {
-		utils.SendError(c, 500, "Failed to update answer")
+		utils.SendError(c, 500, fmt.Sprintf("Failed to update answer: %v", err))
 		return
 	}
 
@@ -66,8 +78,13 @@ func (ctrl *AnswerController) UpdateAnswer(c *gin.Context) {
 // DeleteAnswer deletes an answer by UUID
 func (ctrl *AnswerController) DeleteAnswer(c *gin.Context) {
 	uuid := c.Param("uuid")
+	if uuid == "" {
+		utils.SendError(c, 400, "Answer UUID is required")
+		return
+	}
+
 	if err := ctrl.answerService.DeleteAnswer(uuid); err != nil {
-		utils.SendError(c, 500, "Failed to delete answer")
+		utils.SendError(c, 500, fmt.Sprintf("Failed to delete answer: %v", err))
 		return
 	}
 

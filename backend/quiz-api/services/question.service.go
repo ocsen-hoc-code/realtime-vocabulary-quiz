@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"quiz-api/models"
 	"quiz-api/repositories"
 )
@@ -20,10 +21,17 @@ func (s *QuestionService) CreateQuestion(question *models.Question) error {
 	return s.questionRepo.CreateQuestion(question)
 }
 
-// GetQuestionsByQuiz retrieves questions by quiz UUID with pagination
-func (s *QuestionService) GetQuestionsByQuiz(quizUUID string, page, limit int) ([]models.Question, error) {
+// GetQuestionsByQuiz retrieves paginated questions for a quiz
+func (s *QuestionService) GetQuestionsByQuiz(quizUUID string, page, limit int) ([]models.Question, int64, error) {
 	offset := (page - 1) * limit
-	return s.questionRepo.GetQuestionsByQuizUUID(quizUUID, offset, limit)
+
+	// Fetch paginated questions and total count
+	questions, total, err := s.questionRepo.GetQuestionsByQuiz(quizUUID, offset, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch questions: %w", err)
+	}
+
+	return questions, total, nil
 }
 
 // UpdateQuestion updates an existing question

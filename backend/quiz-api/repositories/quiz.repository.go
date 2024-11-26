@@ -28,11 +28,20 @@ func (r *QuizRepository) GetQuizByUUID(uuid string) (*models.Quiz, error) {
 	return &quiz, err
 }
 
-// GetAllQuizzes retrieves all quizzes
-func (r *QuizRepository) GetAllQuizzes() ([]models.Quiz, error) {
+// GetQuizzesWithPagination retrieves paginated quizzes with a total count
+func (r *QuizRepository) GetQuizzesWithPagination(offset, limit int) ([]models.Quiz, int64, error) {
 	var quizzes []models.Quiz
-	err := r.db.Find(&quizzes).Error
-	return quizzes, err
+	var total int64
+
+	// Count the total number of quizzes
+	err := r.db.Model(&models.Quiz{}).Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Retrieve the quizzes with offset and limit
+	err = r.db.Offset(offset).Limit(limit).Find(&quizzes).Error
+	return quizzes, total, err
 }
 
 // UpdateQuiz updates an existing quiz
