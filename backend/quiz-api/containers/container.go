@@ -20,11 +20,6 @@ func BuildContainer() *dig.Container {
 	container.Provide(config.NewScyllaDB)
 	container.Provide(config.NewRedisClient)
 
-	container.Provide(registry.RegisterTopics)
-	container.Provide(func(cfg services.KafkaConfig) *services.KafkaService {
-		return services.NewKafkaService(cfg)
-	})
-
 	container.Provide(middlewares.NewLoggingMiddleware)
 	container.Provide(middlewares.NewAdminMiddleware)
 	container.Provide(middlewares.NewJWTMiddleware)
@@ -44,6 +39,11 @@ func BuildContainer() *dig.Container {
 	container.Provide(repositories.NewAnswerRepository)
 	container.Provide(services.NewAnswerService)
 	container.Provide(controllers.NewAnswerController)
+
+	container.Provide(registry.RegisterTopics)
+	container.Provide(func(cfg services.KafkaConfig) *services.KafkaService {
+		return services.NewKafkaService(cfg)
+	})
 
 	return container
 }
