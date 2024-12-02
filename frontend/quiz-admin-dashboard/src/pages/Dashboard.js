@@ -5,16 +5,20 @@ import {
   updateQuiz,
   deleteQuiz,
 } from "../services/quizService";
-import { logout } from "../services/authService"; // Import logout from authService
+import { logout } from "../services/authService";
 import Quiz from "../components/Quiz";
 import ModalQuiz from "../components/ModalQuiz";
+import BootstrapToast from "../components/BootstrapToast"; // Import Toast Component
 import { FaPlus, FaSignOutAlt } from "react-icons/fa";
+import { io } from "socket.io-client";
 
 const Dashboard = () => {
   const [quizzes, setQuizzes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [socketId, setSocketId] = useState("");
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   const itemsPerPage = 5;
 
@@ -25,6 +29,7 @@ const Dashboard = () => {
       setQuizzes(data || []);
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (error) {
+      showToast("Error loading quizzes", "danger");
       console.error("Error loading quizzes:", error);
     }
   };
@@ -33,11 +38,14 @@ const Dashboard = () => {
     try {
       if (!quizData.uuid) {
         await createQuiz(quizData);
+        showToast("Quiz created successfully", "success");
       } else {
         await updateQuiz(quizData.uuid, quizData);
+        showToast("Quiz updated successfully", "success");
       }
       loadQuizzes(currentPage);
     } catch (error) {
+      showToast("Error saving quiz", "danger");
       console.error("Error saving quiz:", error);
     }
   };
@@ -45,22 +53,50 @@ const Dashboard = () => {
   const handleDeleteQuiz = async (quizUuid) => {
     try {
       await deleteQuiz(quizUuid);
+      showToast("Quiz deleted successfully", "success");
       loadQuizzes(currentPage);
     } catch (error) {
+      showToast("Error deleting quiz", "danger");
       console.error("Error deleting quiz:", error);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await logout(); // Call the API to perform server-side logout
-      localStorage.removeItem("userToken"); // Remove token from localStorage
-      sessionStorage.clear(); // Clear session storage
-      window.location.href = "/login"; // Redirect to login page
+      await logout();
+      localStorage.removeItem("userToken");
+      sessionStorage.clear();
+      showToast("Logged out successfully", "info");
+      window.location.href = "/login";
     } catch (error) {
+      showToast("Error logging out", "danger");
       console.error("Error logging out:", error);
     }
   };
+
+  const showToast = (message, type) => {
+    setToast({ show: true, message, type });
+
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "" });
+    }, 3000);
+  };
+
+  useEffect(() => {
+    const socketInstance = io("http://127.0.0.1:8082");
+
+    socketInstance.on("connect", () => {
+      setSocketId(socketInstance.id);
+    });
+
+    socketInstance.on("notification", (notification) => {
+      showToast(`Notification: ${notification.data}`, "info");
+    });
+
+    return () => {
+      socketInstance.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     loadQuizzes(currentPage);
@@ -68,6 +104,14 @@ const Dashboard = () => {
 
   return (
     <div className="container mt-5">
+      {toast.show && (
+        <BootstrapToast
+          show={toast.show}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ show: false, message: "", type: "" })}
+        />
+      )}
       <div className="d-flex justify-content-between align-items-center">
         <h1>Manage Quizzes</h1>
         <button className="btn btn-danger" onClick={handleLogout}>
@@ -85,6 +129,7 @@ const Dashboard = () => {
           <Quiz
             key={quiz.uuid}
             quiz={quiz}
+            socketId={socketId}
             onQuizUpdate={(updatedQuiz) => handleSaveQuiz(updatedQuiz)}
             onQuizDelete={(quizUuid) => handleDeleteQuiz(quizUuid)}
           />

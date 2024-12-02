@@ -9,7 +9,7 @@ import {
 } from "../services/questionService";
 import ModalQuestion from "./ModalQuestion";
 
-const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId="0"}) => {
+const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId}) => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);

@@ -3,6 +3,7 @@ package consumers
 import (
 	"fmt"
 	"quiz-api/services"
+	"quiz-api/utils"
 
 	"github.com/sirupsen/logrus"
 )
@@ -24,6 +25,7 @@ func RegisterKafkaConsumers(logger *logrus.Logger, quizExportSerice *services.Qu
 func quizExport(logger *logrus.Logger, quizExportSerice *services.QuizExportService, key string, value string) {
 	fmt.Println("Consumed message:", key, value)
 	quizExportSerice.ExportQuiz(key, value)
+	utils.SendNotification(value, "Publish Quiz Completed")
 	logger.WithFields(logrus.Fields{
 		"key":   key,
 		"value": value,
@@ -32,6 +34,7 @@ func quizExport(logger *logrus.Logger, quizExportSerice *services.QuizExportServ
 
 func revokeQuiz(logger *logrus.Logger, quizExportSerice *services.QuizExportService, key string, value string) {
 	quizExportSerice.RevokeQuiz(key, value)
+	utils.SendNotification(value, "Unpublish Quiz Completed")
 	fmt.Println("Consumed message:", key, value)
 	logger.WithFields(logrus.Fields{
 		"key":   key,

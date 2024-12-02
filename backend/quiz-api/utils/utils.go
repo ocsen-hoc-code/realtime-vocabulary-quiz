@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"quiz-api/models"
@@ -60,4 +63,41 @@ func SendError(c *gin.Context, statusCode int, message string) {
 		Status:  statusCode,
 		Message: message,
 	})
+}
+
+func SendNotification(socketId string, message string) error {
+	notifyURL := os.Getenv("NOTIFICATION_URL")
+	if notifyURL == "" {
+		return fmt.Errorf("NOTIFICATION_URL environment variable is not set")
+	}
+
+	notifyBody := map[string]string{
+		"socket_id": socketId,
+		"data":      message,
+	}
+
+	bodyBytes, err := json.Marshal(notifyBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal notification body: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", notifyURL, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send notification: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("notification failed with status: %s", resp.Status)
+	}
+
+	return nil
 }
