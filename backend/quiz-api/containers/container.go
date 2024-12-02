@@ -40,6 +40,8 @@ func BuildContainer() *dig.Container {
 	container.Provide(services.NewAnswerService)
 	container.Provide(controllers.NewAnswerController)
 
+	container.Provide(services.NewQuizExportService)
+
 	container.Provide(registry.RegisterTopics)
 	container.Provide(func(cfg services.KafkaConfig) *services.KafkaService {
 		return services.NewKafkaService(cfg)
