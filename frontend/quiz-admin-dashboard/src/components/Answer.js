@@ -10,7 +10,7 @@ const Answer = ({ answer, questionUuid, onUpdate, onDelete }) => {
   const handleEdit = async (updatedAnswer) => {
     try {
       await updateAnswer(questionUuid, {
-        updatedAnswer,
+        ...updatedAnswer,
         question_uuid: questionUuid,
       }); // Update API call
       onUpdate(updatedAnswer); // Update the state in parent component

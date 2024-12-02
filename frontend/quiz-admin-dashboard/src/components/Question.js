@@ -81,17 +81,20 @@ const Question = ({ question, quizUuid, onUpdate, onDelete }) => {
   };
 
   return (
-    <div className="card mb-3">
+    <div className="card mb-3 shadow-sm">
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-center">
           <div>
-            <h6 className="card-title">{question.description}</h6>
-            <p className="card-text mb-1 text-muted">
-              Position: {question.position} | Type:{" "}
+            <h5 className="card-title text-primary fw-bold">{question.description}</h5>
+            <p className="mb-1">
+              <span className="fw-bold">Position:</span> {question.position} |{" "}
+              <span className="fw-bold">Type:</span>{" "}
               {question.type === 1
                 ? "Single Choice"
-                :  "Multiple Choice" }
-              | Time Limit: {question.time_limit} seconds
+                : question.type === 2
+                ? "Multiple Choice"
+                : "Short Answer"}{" "}
+              | <span className="fw-bold">Time Limit:</span> {question.time_limit} seconds
             </p>
           </div>
           <div>
@@ -114,15 +117,15 @@ const Question = ({ question, quizUuid, onUpdate, onDelete }) => {
             )}
             <button
               className="btn btn-warning btn-sm me-2"
-              onClick={() => setShowQuestionModal(true)} // Open the edit question modal
+              onClick={() => setShowQuestionModal(true)}
             >
-              Edit Question
+              Edit
             </button>
             <button
               className="btn btn-danger btn-sm"
-              onClick={() => setShowDeleteModal(true)} // Open delete confirmation modal
+              onClick={() => setShowDeleteModal(true)}
             >
-              Delete Question
+              Delete
             </button>
           </div>
         </div>
@@ -130,7 +133,7 @@ const Question = ({ question, quizUuid, onUpdate, onDelete }) => {
         {/* List of answers */}
         {showAnswers && (
           <div className="mt-3">
-            <h6>Answers:</h6>
+            <h6 className="text-secondary">Answers:</h6>
             {answers.length > 0 ? (
               <ul className="list-group">
                 {answers.map((answer) => (
@@ -144,7 +147,7 @@ const Question = ({ question, quizUuid, onUpdate, onDelete }) => {
                 ))}
               </ul>
             ) : (
-              <p>No answers available.</p>
+              <p className="text-muted">No answers available.</p>
             )}
           </div>
         )}
@@ -180,7 +183,7 @@ const Question = ({ question, quizUuid, onUpdate, onDelete }) => {
         <ConfirmDeleteModal
           show={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
-          onConfirm={handleDeleteQuestion} // Call handleDeleteQuestion here
+          onConfirm={handleDeleteQuestion}
         />
       )}
     </div>

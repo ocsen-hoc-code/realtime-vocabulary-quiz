@@ -20,7 +20,12 @@ export const deleteQuiz = async (uuid) => {
   return response.data;
 };
 
-export const quizExport = async (uuid, socketId) => {
+export const quizPublish = async (uuid, socketId) => {
   const response = await api.get(`/quizzes/quiz-export/${uuid}?socket_id=${socketId}`);
+  return response.data;
+};
+
+export const quizUnpublish = async (uuid, socketId) => {
+  const response = await api.get(`/quizzes/revoke-quiz/${uuid}?socket_id=${socketId}`);
   return response.data;
 };

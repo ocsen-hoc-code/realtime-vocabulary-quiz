@@ -77,3 +77,17 @@ func (s *QuizService) GetQuizzesWithPagination(page, limit int) ([]models.Quiz, 
 	}
 	return quizzes, total, nil
 }
+
+func (s *QuizService) RevokeQuiz(uuid string, socketID string) error {
+	// Validate UUID format
+	if uuid == "" {
+		return fmt.Errorf("invalid UUID: cannot be empty")
+	}
+
+	// Attempt to publish the export message
+	if err := s.kafkaService.PublishMessage("revoke_quiz", uuid, socketID); err != nil {
+		return fmt.Errorf("failed to publish quiz export message for UUID %s: %w", uuid, err)
+	}
+
+	return nil
+}

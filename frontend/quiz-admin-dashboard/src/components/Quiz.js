@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import ModalQuiz from "./ModalQuiz";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import Question from "./Question"; // Import Question component
-import { updateQuiz, quizExport } from "../services/quizService";
+import { updateQuiz, quizPublish , quizUnpublish } from "../services/quizService";
 import {
   getQuestionsByQuiz,
   createQuestion,
@@ -57,7 +57,9 @@ const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId="0"}) => {
       const updatedQuiz = { ...quiz, is_published: !quiz.is_published };
       await updateQuiz(quiz.uuid, updatedQuiz);
       if (updatedQuiz.is_published) {
-        quizExport(quiz.uuid, socketId);
+        quizPublish(quiz.uuid, socketId);
+      } else {
+        quizUnpublish(quiz.uuid, socketId);
       }
       onQuizUpdate(updatedQuiz);
     } catch (error) {

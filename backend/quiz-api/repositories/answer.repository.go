@@ -32,7 +32,7 @@ func (r *AnswerRepository) GetAnswersByQuestionUUID(questionUUID string) ([]mode
 
 // UpdateAnswer updates an existing answer
 func (r *AnswerRepository) UpdateAnswer(uuid string, updatedAnswer *models.Answer) error {
-	return r.db.Model(&models.Answer{}).Where("uuid = ?", uuid).Updates(updatedAnswer).Error
+	return r.db.Model(&models.Answer{}).Where("uuid = ?", uuid).Save(updatedAnswer).Error
 }
 
 // DeleteAnswer deletes an answer by its UUID

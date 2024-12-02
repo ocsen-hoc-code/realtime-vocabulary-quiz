@@ -14,10 +14,21 @@ func RegisterKafkaConsumers(logger *logrus.Logger) map[string]func(key, value st
 		"quiz_export": func(key string, value string) {
 			quizExport(logger, key, value)
 		},
+		"revoke_quiz": func(key string, value string) {
+			revokeQuiz(logger, key, value)
+		},
 	}
 }
 
 func quizExport(logger *logrus.Logger, key string, value string) {
+	fmt.Println("Consumed message:", key, value)
+	logger.WithFields(logrus.Fields{
+		"key":   key,
+		"value": value,
+	}).Info("Message consumed")
+}
+
+func revokeQuiz(logger *logrus.Logger, key string, value string) {
 	fmt.Println("Consumed message:", key, value)
 	logger.WithFields(logrus.Fields{
 		"key":   key,

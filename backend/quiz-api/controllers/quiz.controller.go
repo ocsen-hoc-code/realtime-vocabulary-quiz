@@ -136,3 +136,20 @@ func (ctrl *QuizController) QuizExport(c *gin.Context) {
 
 	utils.SendSuccess(c, nil)
 }
+
+func (ctrl *QuizController) RevokeQuiz(c *gin.Context) {
+	uuid := c.Param("uuid")
+	socketID := c.Query("socket_id")
+
+	if uuid == "" || socketID == "" {
+		utils.SendError(c, 400, "UUID and socket_id are required")
+		return
+	}
+
+	if err := ctrl.quizService.RevokeQuiz(uuid, socketID); err != nil {
+		utils.SendError(c, 500, fmt.Sprintf("Failed to export quiz with UUID %s: %v", uuid, err))
+		return
+	}
+
+	utils.SendSuccess(c, nil)
+}
