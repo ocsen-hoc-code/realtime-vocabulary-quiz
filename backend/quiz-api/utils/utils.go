@@ -28,39 +28,36 @@ func GenerateToken(user *models.User) (string, string, error) {
 
 // SuccessResponse represents a standard success response
 type SuccessResponse struct {
-	Status  string      `json:"status"`  // e.g., "success"
-	Message string      `json:"message"` // Optional descriptive message
-	Data    interface{} `json:"data"`    // Response payload
+	Status int         `json:"status"` // e.g., "success"
+	Data   interface{} `json:"data"`   // Response payload
 }
 
 // ErrorResponse represents a standard error response
 type ErrorResponse struct {
-	Status  string `json:"status"`  // e.g., "error"
+	Status  int    `json:"status"`  // e.g., "error"
 	Message string `json:"message"` // Error description
 }
 
 // SendCreated sends a standardized success response for resource creation
-func SendCreated(c *gin.Context, data interface{}, message string) {
+func SendCreated(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusCreated, SuccessResponse{
-		Status:  "success",
-		Message: message,
-		Data:    data,
+		Status: http.StatusCreated,
+		Data:   data,
 	})
 }
 
 // SendCreated sends a standardized success response for resource creation
-func SendSuccess(c *gin.Context, data interface{}, message string) {
+func SendSuccess(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, SuccessResponse{
-		Status:  "success",
-		Message: message,
-		Data:    data,
+		Status: http.StatusOK,
+		Data:   data,
 	})
 }
 
 // SendError sends a standardized error response
 func SendError(c *gin.Context, statusCode int, message string) {
 	c.JSON(statusCode, ErrorResponse{
-		Status:  "error",
+		Status:  statusCode,
 		Message: message,
 	})
 }

@@ -33,7 +33,7 @@ func (ctrl *QuizController) CreateQuiz(c *gin.Context) {
 		return
 	}
 
-	utils.SendCreated(c, quiz, "Quiz created successfully")
+	utils.SendCreated(c, quiz)
 }
 
 // GetQuiz retrieves a single quiz by UUID
@@ -50,7 +50,7 @@ func (ctrl *QuizController) GetQuiz(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, quiz, "Quiz retrieved successfully")
+	utils.SendSuccess(c, quiz)
 }
 
 // GetQuizzes retrieves all quizzes
@@ -83,7 +83,7 @@ func (ctrl *QuizController) GetQuizzes(c *gin.Context) {
 		},
 	}
 
-	utils.SendSuccess(c, response, "Quizzes retrieved successfully")
+	utils.SendSuccess(c, response)
 }
 
 // UpdateQuiz updates an existing quiz
@@ -100,7 +100,7 @@ func (ctrl *QuizController) UpdateQuiz(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, quiz, "Quiz updated successfully")
+	utils.SendSuccess(c, quiz)
 }
 
 // DeleteQuiz deletes a quiz by UUID
@@ -116,7 +116,7 @@ func (ctrl *QuizController) DeleteQuiz(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, nil, "Quiz deleted successfully")
+	utils.SendSuccess(c, nil)
 }
 
 // QuizExport exports a quiz using Kafka
@@ -134,5 +134,5 @@ func (ctrl *QuizController) QuizExport(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, nil, "Export quiz successfully")
+	utils.SendSuccess(c, nil)
 }

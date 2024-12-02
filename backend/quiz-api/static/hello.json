@@ -1,0 +1,7 @@
+{
+    "message": "Hello, World!",
+    "data": {
+        "name": "Minh",
+        "age": 30
+    }
+}

@@ -40,13 +40,13 @@ func (r *QuizRepository) GetQuizzesWithPagination(offset, limit int) ([]models.Q
 	}
 
 	// Retrieve the quizzes with offset and limit
-	err = r.db.Offset(offset).Limit(limit).Find(&quizzes).Error
+	err = r.db.Order("created_at DESC").Offset(offset).Limit(limit).Find(&quizzes).Error
 	return quizzes, total, err
 }
 
 // UpdateQuiz updates an existing quiz
 func (r *QuizRepository) UpdateQuiz(uuid string, updatedQuiz *models.Quiz) error {
-	return r.db.Model(&models.Quiz{}).Where("uuid = ?", uuid).Updates(updatedQuiz).Error
+	return r.db.Model(&models.Quiz{}).Where("uuid = ?", uuid).Save(updatedQuiz).Error
 }
 
 // DeleteQuiz deletes a quiz by its UUID

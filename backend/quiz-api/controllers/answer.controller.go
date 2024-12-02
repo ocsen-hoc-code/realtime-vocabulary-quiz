@@ -33,7 +33,7 @@ func (ctrl *AnswerController) CreateAnswer(c *gin.Context) {
 		return
 	}
 
-	utils.SendCreated(c, answer, "Answer created successfully")
+	utils.SendCreated(c, answer)
 }
 
 // GetAnswersByQuestion retrieves all answers for a question
@@ -50,7 +50,7 @@ func (ctrl *AnswerController) GetAnswersByQuestion(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, answers, "Answers retrieved successfully")
+	utils.SendSuccess(c, answers)
 }
 
 // UpdateAnswer updates an existing answer
@@ -72,7 +72,7 @@ func (ctrl *AnswerController) UpdateAnswer(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, answer, "Answer updated successfully")
+	utils.SendSuccess(c, answer)
 }
 
 // DeleteAnswer deletes an answer by UUID
@@ -88,5 +88,5 @@ func (ctrl *AnswerController) DeleteAnswer(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, nil, "Answer deleted successfully")
+	utils.SendSuccess(c, nil)
 }

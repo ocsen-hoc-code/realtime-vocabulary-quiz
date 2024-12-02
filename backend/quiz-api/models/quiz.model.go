@@ -9,7 +9,7 @@ type Quiz struct {
 	UUID        string     `gorm:"type:uuid;primary_key;" json:"uuid"`
 	Title       string     `json:"title"`
 	IsPublished bool       `gorm:"default:false" json:"is_published"` // Indicates if the quiz is published
-	Questions   []Question `gorm:"foreignKey:QuizUUID;" json:"questions,omitempty"`
+	Questions   []Question `gorm:"foreignKey:QuizUUID;constraint:OnDelete:CASCADE;" json:"questions,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
@@ -22,7 +22,7 @@ type Question struct {
 	Position    int       `json:"position"`
 	Type        int       `json:"type"`
 	TimeLimit   int       `json:"time_limit"`
-	Answers     []Answer  `gorm:"foreignKey:QuestionUUID;" json:"answers,omitempty"`
+	Answers     []Answer  `gorm:"foreignKey:QuestionUUID;constraint:OnDelete:CASCADE;" json:"answers,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

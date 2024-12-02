@@ -34,7 +34,7 @@ func (ctrl *QuestionController) CreateQuestion(c *gin.Context) {
 		return
 	}
 
-	utils.SendCreated(c, question, "Question created successfully")
+	utils.SendCreated(c, question)
 }
 
 // GetQuestionsByQuiz retrieves paginated questions for a quiz
@@ -77,7 +77,7 @@ func (ctrl *QuestionController) GetQuestionsByQuiz(c *gin.Context) {
 	}
 
 	// Send response
-	utils.SendSuccess(c, response, "Questions retrieved successfully")
+	utils.SendSuccess(c, response)
 }
 
 // UpdateQuestion updates an existing question
@@ -94,7 +94,7 @@ func (ctrl *QuestionController) UpdateQuestion(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, question, "Question updated successfully")
+	utils.SendSuccess(c, question)
 }
 
 // DeleteQuestion deletes a question by UUID
@@ -105,5 +105,5 @@ func (ctrl *QuestionController) DeleteQuestion(c *gin.Context) {
 		return
 	}
 
-	utils.SendSuccess(c, nil, "Question deleted successfully")
+	utils.SendSuccess(c, nil)
 }
