@@ -24,8 +24,12 @@ func RegisterKafkaConsumers(logger *logrus.Logger, quizExportSerice *services.Qu
 
 func quizExport(logger *logrus.Logger, quizExportSerice *services.QuizExportService, key string, value string) {
 	fmt.Println("Consumed message:", key, value)
-	quizExportSerice.ExportQuiz(key, value)
-	utils.SendNotification(value, "Publish Quiz Completed")
+	err, title := quizExportSerice.ExportQuiz(key, value)
+	if err != nil {
+		utils.SendNotification(value, fmt.Sprintf("Publish Quiz %s Falied", title))
+	} else {
+		utils.SendNotification(value, fmt.Sprintf("Publish Quiz %s Completed", title))
+	}
 	logger.WithFields(logrus.Fields{
 		"key":   key,
 		"value": value,
@@ -33,8 +37,12 @@ func quizExport(logger *logrus.Logger, quizExportSerice *services.QuizExportServ
 }
 
 func revokeQuiz(logger *logrus.Logger, quizExportSerice *services.QuizExportService, key string, value string) {
-	quizExportSerice.RevokeQuiz(key, value)
-	utils.SendNotification(value, "Unpublish Quiz Completed")
+	title, err := quizExportSerice.RevokeQuiz(key, value)
+	if err != nil {
+		utils.SendNotification(value, fmt.Sprintf("Unpublish Quiz %s Falied", title))
+	} else {
+		utils.SendNotification(value, fmt.Sprintf("Unpublish Quiz %s Completed", title))
+	}
 	fmt.Println("Consumed message:", key, value)
 	logger.WithFields(logrus.Fields{
 		"key":   key,

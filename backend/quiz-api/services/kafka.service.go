@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
@@ -161,7 +162,8 @@ func (k *KafkaService) StartConsumer(topics []string) {
 				MinBytes:       k.readerConfig.MinBytes,
 				MaxBytes:       k.readerConfig.MaxBytes,
 				CommitInterval: 0, // Disable auto-commit for manual commits
-				StartOffset:    kafka.FirstOffset,
+				StartOffset:    kafka.LastOffset,
+				MaxWait:        100 * time.Millisecond,
 			})
 			defer reader.Close()
 
