@@ -2,14 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import ModalQuiz from "./ModalQuiz";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import Question from "./Question"; // Import Question component
-import { updateQuiz, quizPublish , quizUnpublish } from "../services/quizService";
+import {
+  updateQuiz,
+  quizPublish,
+  quizUnpublish,
+} from "../services/quizService";
 import {
   getQuestionsByQuiz,
   createQuestion,
 } from "../services/questionService";
 import ModalQuestion from "./ModalQuestion";
 
-const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId}) => {
+const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId, onShare }) => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
@@ -84,6 +88,18 @@ const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId}) => {
     setShowQuestionModal(false);
   };
 
+  const handleShare = () => {
+    const quizLink = `http://localhost:5052/quiz/${quiz.uuid}`;
+    navigator.clipboard
+      .writeText(quizLink)
+      .then(() => {
+        onShare(quizLink);
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+      });
+  };
+
   useEffect(() => {
     if (!isCollapsed) {
       loadQuestions(currentPage);
@@ -129,9 +145,21 @@ const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId}) => {
               Delete
             </button>
 
-            <button className="btn btn-info btn-sm" onClick={toggleCollapse}>
+            <button
+              className="btn btn-info btn-sm me-2"
+              onClick={toggleCollapse}
+            >
               {isCollapsed ? "View Questions" : "Hide Questions"}
             </button>
+
+            {quiz.is_published && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleShare}
+              >
+                Share
+              </button>
+            )}
           </div>
         </div>
 

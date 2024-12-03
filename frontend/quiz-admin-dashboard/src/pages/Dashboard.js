@@ -74,6 +74,10 @@ const Dashboard = () => {
     }
   };
 
+  const handleShareQuiz = (link) => {
+    showToast(`Link copied to clipboard: ${link}`, "info");
+  }
+
   const showToast = (message, type) => {
     setToast({ show: true, message, type });
 
@@ -132,6 +136,7 @@ const Dashboard = () => {
             socketId={socketId}
             onQuizUpdate={(updatedQuiz) => handleSaveQuiz(updatedQuiz)}
             onQuizDelete={(quizUuid) => handleDeleteQuiz(quizUuid)}
+            onShare={(link) => handleShareQuiz(link)}
           />
         ))
       ) : (
