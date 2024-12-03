@@ -22,6 +22,7 @@ type LoginRequest struct {
 type LoginResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
+	IsAdmin  bool   `json:"is_admin"`
 	Token    string `json:"token"`
 }
 

@@ -12,7 +12,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await login(username, password);
-    if (result.success) {
+    if (result.success && result.is_admin) {
       setErrorMessage('');
       navigate('/dashboard');
     } else {

@@ -53,6 +53,7 @@ func (u *UserController) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.LoginResponse{
 		ID:       user.ID,
 		Username: user.Username,
+		IsAdmin:  user.IsAdmin,
 		Token:    token,
 	})
 }

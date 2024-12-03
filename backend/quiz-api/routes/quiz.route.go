@@ -14,7 +14,7 @@ func QuizRoutes(router *gin.Engine, container *dig.Container) error {
 
 		quizGroup := router.Group("/quizzes")
 		{
-			// quizGroup.Use(gin.HandlerFunc(adminMiddleware))
+			quizGroup.Use(gin.HandlerFunc(adminMiddleware))
 			quizGroup.POST("/", quizController.CreateQuiz)
 			quizGroup.GET("/", quizController.GetQuizzes)
 			quizGroup.GET("/:uuid", quizController.GetQuiz)
