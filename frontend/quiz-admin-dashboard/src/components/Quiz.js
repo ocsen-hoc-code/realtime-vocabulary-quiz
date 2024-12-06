@@ -89,7 +89,7 @@ const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId, onShare }) => {
   };
 
   const handleShare = () => {
-    const quizLink = `http://localhost:5052/quiz/${quiz.uuid}`;
+    const quizLink = `http://localhost:5001/quiz/${quiz.uuid}`;
     navigator.clipboard
       .writeText(quizLink)
       .then(() => {
