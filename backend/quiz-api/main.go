@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"quiz-api/containers"
 	"quiz-api/routes"
 
@@ -13,13 +14,16 @@ func main() {
 
 	router := gin.Default()
 
-	router.Static("/static", "./static")
-
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
 	}))
+
+	staticHandler := http.FileServer(http.Dir("./static"))
+	router.GET("/static/*filepath", func(c *gin.Context) {
+		http.StripPrefix("/static", staticHandler).ServeHTTP(c.Writer, c.Request)
+	})
 
 	err := routes.RegisterRoutes(router, container)
 	go containers.RunKafkaConsumer(container)

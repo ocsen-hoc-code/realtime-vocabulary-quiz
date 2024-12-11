@@ -24,6 +24,8 @@ func BuildContainer() *dig.Container {
 	container.Provide(middlewares.NewAdminMiddleware)
 	container.Provide(middlewares.NewJWTMiddleware)
 
+	container.Provide(repositories.NewScyllaDBRepository)
+
 	container.Provide(repositories.NewUserRepository)
 	container.Provide(services.NewUserService)
 	container.Provide(controllers.NewUserController)
