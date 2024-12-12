@@ -76,7 +76,7 @@ const Dashboard = () => {
 
   const handleShareQuiz = (link) => {
     showToast(`Link copied to clipboard: ${link}`, "info");
-  }
+  };
 
   const showToast = (message, type) => {
     setToast({ show: true, message, type });
@@ -87,7 +87,13 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const socketInstance = io("http://127.0.0.1:8082");
+    const userToken = localStorage.getItem("userToken");
+    const socketInstance = io("http://127.0.0.1:8082", {
+      auth: {
+        token: userToken,
+      },
+      transports: ["websocket", "polling"],
+    });
 
     socketInstance.on("connect", () => {
       setSocketId(socketInstance.id);
@@ -169,7 +175,9 @@ const Dashboard = () => {
           {Array.from({ length: totalPages }, (_, index) => (
             <li
               key={index + 1}
-              className={`page-item ${currentPage === index + 1 ? "active" : ""}`}
+              className={`page-item ${
+                currentPage === index + 1 ? "active" : ""
+              }`}
             >
               <button
                 className="page-link"
