@@ -28,6 +28,7 @@ var tableQueries = []string{
         user_uuid UUID,
         quiz_uuid UUID,
         current_question_uuid UUID,
+		score INT,
         created_at TIMESTAMP,
         updated_at TIMESTAMP,
         PRIMARY KEY (user_uuid, quiz_uuid)
@@ -38,7 +39,7 @@ var tableQueries = []string{
         question_uuid UUID,
         prev_question_uuid UUID,
         next_question_uuid UUID,
-        answer_hash TEXT,
+		answers TEXT,
         PRIMARY KEY (quiz_uuid, question_uuid)
     );`,
 	`
@@ -46,7 +47,7 @@ var tableQueries = []string{
         user_uuid UUID,
         question_uuid UUID,
         quiz_uuid UUID,
-        answer_hash TEXT,
+        answers TEXT,
         answer_time TIMESTAMP,
         PRIMARY KEY (user_uuid, question_uuid)
     );`,

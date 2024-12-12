@@ -87,7 +87,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const userToken = localStorage.getItem("userToken");
+    const userToken = localStorage.getItem("token");
     const socketInstance = io("http://127.0.0.1:8082", {
       auth: {
         token: userToken,

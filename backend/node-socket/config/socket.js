@@ -6,7 +6,6 @@ const { calculateScore } = require("../services/quiz.service");
 class SocketServer {
   constructor(httpServer) {
     if (!SocketServer.instance) {
-      // Khởi tạo Socket.IO với CORS
       this.io = new Server(httpServer, {
         cors: {
           origin: "*",
@@ -24,7 +23,7 @@ class SocketServer {
    */
   async initialize(authSocket) {
     const pubClient = RedisClient.getClient(); // Publisher
-    const subClient = pubClient.duplicate();   // Subscriber
+    const subClient = pubClient.duplicate(); // Subscriber
 
     // Connect only the duplicated subscriber
     if (!subClient.isOpen) {
@@ -51,17 +50,18 @@ class SocketServer {
       });
 
       // Update score event
-      socket.on("update_score", ({ quiz_id, data }) => {
-        const result = calculateScore(data.answers); // Use quiz service
-
-        socket.emit("update_result", { result });
-
-        if (socket.user && result.score > 0) {
-          this.io.to(quiz_id).emit("update_leaderboard", {
-            user: socket.user,
-            score: result.total,
-          });
-        }
+      socket.on("update_score", ({ quiz_id, question_id, answerHash }) => {
+        calculateScore(quiz_id, question_id, answerHash).then(
+          (result) => {
+            socket.emit("update_result", { result });
+            if (socket.user && result.score > 0) {
+              this.io.to(quiz_id).emit("update_leaderboard", {
+                user: socket.user,
+                score: result.total,
+              });
+            }
+          }
+        );
       });
 
       // Disconnect event

@@ -5,12 +5,12 @@ class ScyllaClient {
   constructor() {
     if (!ScyllaClient.instance) {
       this.client = new cassandra.Client({
-        contactPoints: [process.env.SCYLLA_HOST],
-        localDataCenter: process.env.SCYLLA_DATACENTER,
-        keyspace: process.env.SCYLLA_KEYSPACE,
+        contactPoints: process.env.SCYLLADB_HOSTS.split(","),
+        localDataCenter: "datacenter1",
+        keyspace: process.env.SCYLLADB_KEYSPACE,
         credentials: {
-          username: process.env.SCYLLA_USERNAME,
-          password: process.env.SCYLLA_PASSWORD,
+          username: process.env.SCYLLADB_USERNAME,
+          password: process.env.SCYLLADB_PASSWORD,
         },
       });
       ScyllaClient.instance = this;

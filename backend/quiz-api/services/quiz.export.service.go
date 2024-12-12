@@ -1,8 +1,6 @@
 package services
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -79,9 +77,6 @@ func (s *QuizExportService) ExportQuiz(quizUUID string, socketId string) (error,
 		sort.Strings(correctAnswerUUIDs)
 		correctAnswersString := strings.Join(correctAnswerUUIDs, ",")
 
-		hash := md5.Sum([]byte(correctAnswersString))
-		answerHash := hex.EncodeToString(hash[:])
-
 		var nextQuestionUUID interface{}
 		var prevQuestionUUID interface{}
 
@@ -128,14 +123,14 @@ func (s *QuizExportService) ExportQuiz(quizUUID string, socketId string) (error,
 			return fmt.Errorf("failed to write question file: %v", err), quiz.Title
 		}
 
-		columns := []string{"quiz_uuid", "question_uuid", "prev_question_uuid", "next_question_uuid", "answer_hash"}
+		columns := []string{"quiz_uuid", "question_uuid", "prev_question_uuid", "next_question_uuid", "answers"}
 
 		questionRecord := map[string]interface{}{
 			"quiz_uuid":          quiz.UUID,
 			"question_uuid":      question.UUID,
 			"prev_question_uuid": prevQuestionUUID,
 			"next_question_uuid": nextQuestionUUID,
-			"answer_hash":        answerHash,
+			"answers":            correctAnswersString,
 		}
 
 		if err := s.scyllaRepo.InsertRecord("questions", questionRecord, columns); err != nil {
