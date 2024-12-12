@@ -5,27 +5,8 @@ export const getQuizzes = async (page, limit) => {
   return response.data;
 };
 
-export const createQuiz = async (quizData) => {
-  const response = await api.post('/quizzes/', quizData);
-  return response.data;
-};
 
-export const updateQuiz = async (uuid, quizData) => {
-  const response = await api.put(`/quizzes/${uuid}`, quizData);
-  return response.data;
-};
-
-export const deleteQuiz = async (uuid) => {
-  const response = await api.delete(`/quizzes/${uuid}`);
-  return response.data;
-};
-
-export const quizPublish = async (uuid, socketId) => {
-  const response = await api.get(`/quizzes/quiz-export/${uuid}?socket_id=${socketId}`);
-  return response.data;
-};
-
-export const quizUnpublish = async (uuid, socketId) => {
-  const response = await api.get(`/quizzes/revoke-quiz/${uuid}?socket_id=${socketId}`);
+export const getQuizzeByUUID = async (quizUuid) => {
+  const response =  await api.get(`static/${quizUuid}/quiz.json`);
   return response.data;
 };

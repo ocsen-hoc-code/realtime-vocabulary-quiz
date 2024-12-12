@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Quiz from './pages/Quiz';
 import Footer from './components/Footer';
 
 const App = () => {
@@ -11,6 +12,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/quiz/:id" element={<Quiz />} />
           <Route path="/" element={<Login />} />
         </Routes>
         <Footer />
