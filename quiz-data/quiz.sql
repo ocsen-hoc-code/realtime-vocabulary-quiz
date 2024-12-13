@@ -1,10 +1,10 @@
 INSERT INTO public.quizzes (uuid,title,is_published,created_at,updated_at) VALUES
 	 ('5488d07a-36e9-4985-a833-3b17b8d96f6d'::uuid,'Vocabulary Test',false,'2024-12-02 13:26:49.272652+07','2024-12-02 15:37:53.354016+07');
 
-INSERT INTO public.questions (uuid,quiz_uuid,description,"position","type",time_limit,created_at,updated_at) VALUES
-	 ('67bfc4b4-4e01-4fcb-9a33-0604a145cf4d'::uuid,'5488d07a-36e9-4985-a833-3b17b8d96f6d'::uuid,'Q1: What is the synonym of the word "Happy"?',1,1,60,'2024-12-02 13:26:57.125333+07','2024-12-02 15:38:17.230755+07'),
-	 ('e5cf2fa9-c0f4-49df-971b-dee05800210f'::uuid,'5488d07a-36e9-4985-a833-3b17b8d96f6d'::uuid,'Q2: What is the antonym of the word "Cold"?',2,1,30,'2024-12-02 15:39:43.900562+07','2024-12-02 15:39:57.63198+07'),
-	 ('ee140f99-7f84-4d17-a128-b31877b49f6c'::uuid,'5488d07a-36e9-4985-a833-3b17b8d96f6d'::uuid,'Q3: What does the word "Generous" mean?',3,1,60,'2024-12-02 15:41:06.573353+07','2024-12-02 15:41:06.573353+07');
+INSERT INTO public.questions ("uuid",quiz_uuid,description,"position","type",time_limit,score,created_at,updated_at) VALUES
+	 ('67bfc4b4-4e01-4fcb-9a33-0604a145cf4d'::uuid,'5488d07a-36e9-4985-a833-3b17b8d96f6d'::uuid,'Q1: What is the synonym of the word "Happy"?',1,1,60,1,'2024-12-02 13:26:57.125333+07','2024-12-13 20:48:26.840737+07'),
+	 ('e5cf2fa9-c0f4-49df-971b-dee05800210f'::uuid,'5488d07a-36e9-4985-a833-3b17b8d96f6d'::uuid,'Q2: What is the antonym of the word "Cold"?',2,1,30,2,'2024-12-02 15:39:43.900562+07','2024-12-13 20:48:37.30359+07'),
+	 ('ee140f99-7f84-4d17-a128-b31877b49f6c'::uuid,'5488d07a-36e9-4985-a833-3b17b8d96f6d'::uuid,'Q3: What does the word "Generous" mean?',3,1,60,3,'2024-12-02 15:41:06.573353+07','2024-12-13 20:48:41.142974+07');
 INSERT INTO public.answers (uuid,question_uuid,description,is_correct,created_at,updated_at) VALUES
 	 ('f3dc1323-d8a4-445f-89a2-1b1b06aceb1d'::uuid,'67bfc4b4-4e01-4fcb-9a33-0604a145cf4d'::uuid,'Sad',false,'2024-12-02 15:38:53.911607+07','2024-12-02 15:38:53.911607+07'),
 	 ('6b56b843-f4cf-4236-b315-48a22e4e1ac3'::uuid,'67bfc4b4-4e01-4fcb-9a33-0604a145cf4d'::uuid,'Angry',false,'2024-12-02 15:39:08.682338+07','2024-12-02 15:39:08.682338+07'),

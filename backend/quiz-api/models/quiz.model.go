@@ -23,6 +23,7 @@ type Question struct {
 	Type        int       `json:"type"`
 	TimeLimit   int       `json:"time_limit"`
 	Answers     []Answer  `gorm:"foreignKey:QuestionUUID;constraint:OnDelete:CASCADE;" json:"answers,omitempty"`
+	Score       int       `gorm:"default:0" json:"score"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

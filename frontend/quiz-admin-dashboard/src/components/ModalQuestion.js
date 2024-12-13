@@ -5,6 +5,7 @@ const ModalQuestion = ({ show, question, quizUuid, onClose, onSave }) => {
   const [position, setPosition] = useState(1);
   const [type, setType] = useState(1); // Default: Single Choice
   const [timeLimit, setTimeLimit] = useState(60); // Default: 60 seconds
+  const [score, setScore] = useState(0); // New: Default score
 
   useEffect(() => {
     if (question) {
@@ -12,11 +13,13 @@ const ModalQuestion = ({ show, question, quizUuid, onClose, onSave }) => {
       setPosition(question.position || 1);
       setType(question.type || 1);
       setTimeLimit(question.time_limit || 60);
+      setScore(question.score || 0); // Set score from question
     } else {
       setDescription("");
       setPosition(1);
       setType(1);
       setTimeLimit(60);
+      setScore(0); // Reset to default score
     }
   }, [question]);
 
@@ -28,6 +31,7 @@ const ModalQuestion = ({ show, question, quizUuid, onClose, onSave }) => {
       position,
       type,
       time_limit: timeLimit,
+      score, // Include score in the saved data
     };
 
     onSave(newQuestion); // Pass data to parent component
@@ -88,6 +92,16 @@ const ModalQuestion = ({ show, question, quizUuid, onClose, onSave }) => {
                 value={timeLimit}
                 onChange={(e) => setTimeLimit(Number(e.target.value))}
                 min="10"
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Score</label>
+              <input
+                type="number"
+                className="form-control"
+                value={score}
+                onChange={(e) => setScore(Number(e.target.value))}
+                min="0"
               />
             </div>
           </div>

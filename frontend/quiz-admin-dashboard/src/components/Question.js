@@ -94,7 +94,8 @@ const Question = ({ question, quizUuid, onUpdate, onDelete }) => {
                 : question.type === 2
                 ? "Multiple Choice"
                 : "Short Answer"}{" "}
-              | <span className="fw-bold">Time Limit:</span> {question.time_limit} seconds
+              | <span className="fw-bold">Time Limit:</span> {question.time_limit} seconds |{" "}
+              <span className="fw-bold">Score:</span> {question.score || 0}
             </p>
           </div>
           <div>
