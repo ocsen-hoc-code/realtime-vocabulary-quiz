@@ -201,7 +201,7 @@ const Quiz = ({ quiz, onQuizUpdate, onQuizDelete, socketId, onShare }) => {
 
                 {/* Pagination Controls */}
                 <nav className="mt-3">
-                  <ul className="pagination justify-content-center">
+                  <ul className="pagination justify-content-end">
                     <li
                       className={`page-item ${
                         currentPage === 1 ? "disabled" : ""
