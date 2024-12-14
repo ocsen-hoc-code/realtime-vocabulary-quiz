@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { getQuizzes } from "../services/quizService";
-import { logout } from "../services/authService";
-import { FaSignOutAlt } from "react-icons/fa";
+import { logout, changePassword } from "../services/authService";
+import ModalChangePassword from "../components/ModalChangePassword";
+import BootstrapToast from "../components/BootstrapToast";
+import { FaSignOutAlt, FaLock, FaUserEdit } from "react-icons/fa";
 
 const Dashboard = () => {
   const [quizzes, setQuizzes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [fullName, setFullName] = useState("");
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const dropdownRef = useRef(null);
 
   const itemsPerPage = 5;
 
@@ -17,36 +24,97 @@ const Dashboard = () => {
       setQuizzes(data.data || []);
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (error) {
-      console.error("Error loading quizzes:", error);
+      showToast("Error loading quizzes", "danger");
     }
+  };
+
+  const showToast = (message, type) => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
   const handleLogout = async () => {
     try {
       await logout();
       localStorage.removeItem("userToken");
-      sessionStorage.clear();
+      localStorage.removeItem("fullname");
+      showToast("Logged out successfully", "info");
       window.location.href = "/login";
     } catch (error) {
-      console.error("Error logging out:", error);
+      showToast("Error logging out", "danger");
+    }
+  };
+
+  const handleSavePassword = async (passwordData) => {
+    try {
+      const { current_password, new_password } = passwordData;
+      await changePassword(current_password, new_password);
+      showToast("Password changed successfully", "success");
+      setShowChangePasswordModal(false);
+    } catch (error) {
+      showToast("Change password failed", "danger");
     }
   };
 
   useEffect(() => {
+    const storedFullName = localStorage.getItem("fullname") || "Guest User";
+    setFullName(storedFullName);
     loadQuizzes(currentPage);
+
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownVisible(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [currentPage]);
 
   return (
     <div className="container mt-5">
-      <div className="d-flex justify-content-between align-items-center">
+      {toast.show && (
+        <BootstrapToast
+          show={toast.show}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ show: false, message: "", type: "" })}
+        />
+      )}
+
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <h1>Quiz Dashboard</h1>
-        <button className="btn btn-danger" onClick={handleLogout}>
-          <FaSignOutAlt className="me-2" /> Logout
-        </button>
+
+        <div className="position-relative" ref={dropdownRef}>
+          <button
+            className="btn btn-outline-secondary d-flex align-items-center"
+            onClick={() => setDropdownVisible(!dropdownVisible)}
+          >
+            <FaUserEdit className="me-2" /> {fullName}
+          </button>
+
+          {dropdownVisible && (
+            <div className="dropdown-menu show" style={{ display: "block" }}>
+              <button
+                className="dropdown-item d-flex align-items-center"
+                onClick={() => setShowChangePasswordModal(true)}
+              >
+                <FaLock className="me-2" /> Change Password
+              </button>
+              <button
+                className="dropdown-item d-flex align-items-center"
+                onClick={handleLogout}
+              >
+                <FaSignOutAlt className="me-2" /> Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Quiz List */}
       {quizzes.length > 0 ? (
-        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mt-4">
+        <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
           {quizzes.map((quiz) => (
             <div className="col" key={quiz.uuid}>
               <div className="card h-100">
@@ -55,7 +123,9 @@ const Dashboard = () => {
                   <p className="card-text">{quiz.description}</p>
                   <button
                     className="btn btn-success"
-                    onClick={() => window.location.href = `/quiz/${quiz.uuid}`}
+                    onClick={() =>
+                      (window.location.href = `/quiz/${quiz.uuid}`)
+                    }
                   >
                     Start
                   </button>
@@ -65,7 +135,7 @@ const Dashboard = () => {
           ))}
         </div>
       ) : (
-        <p className="mt-4">No quizzes available.</p>
+        <p>No quizzes available.</p>
       )}
 
       {/* Pagination */}
@@ -110,6 +180,15 @@ const Dashboard = () => {
           </li>
         </ul>
       </nav>
+
+      {/* Modal Change Password */}
+      {showChangePasswordModal && (
+        <ModalChangePassword
+          show={showChangePasswordModal}
+          onClose={() => setShowChangePasswordModal(false)}
+          onSave={handleSavePassword}
+        />
+      )}
     </div>
   );
 };
