@@ -66,6 +66,7 @@ func createAdminUser(db *gorm.DB) {
 	adminUser := models.User{
 		Username: "admin",
 		Password: string(hashedPassword),
+		FullName: "Administrator",
 		IsAdmin:  true,
 	}
 
@@ -78,6 +79,7 @@ func createAdminUser(db *gorm.DB) {
 	user1 := models.User{
 		Username: "user1",
 		Password: string(user1Password),
+		FullName: "User 1",
 		IsAdmin:  false,
 	}
 	// Save the admin user to the database
@@ -89,6 +91,7 @@ func createAdminUser(db *gorm.DB) {
 	user2 := models.User{
 		Username: "user2",
 		Password: string(user2Password),
+		FullName: "User 2",
 		IsAdmin:  false,
 	}
 	// Save the admin user to the database

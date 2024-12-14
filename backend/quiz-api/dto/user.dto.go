@@ -4,6 +4,7 @@ package dto
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+	FullName string `json:"fullname" binding:"required"`
 }
 
 // RegisterResponse represents the response after successful registration
@@ -22,6 +23,7 @@ type LoginRequest struct {
 type LoginResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
+	FullName string `json:"fullname"`
 	IsAdmin  bool   `json:"is_admin"`
 	Token    string `json:"token"`
 }

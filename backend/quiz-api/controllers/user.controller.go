@@ -24,7 +24,7 @@ func (u *UserController) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := u.UserService.Register(request.Username, request.Password)
+	user, err := u.UserService.Register(request.Username, request.Password, request.FullName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -53,6 +53,7 @@ func (u *UserController) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.LoginResponse{
 		ID:       user.ID,
 		Username: user.Username,
+		FullName: user.FullName,
 		IsAdmin:  user.IsAdmin,
 		Token:    token,
 	})
@@ -71,7 +72,7 @@ func (u *UserController) ChangePassword(c *gin.Context) {
 
 	err := u.UserService.ChangePassword(userID, request.OldPassword, request.NewPassword)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotModified, gin.H{"error": "Invalid current password or unauthorized"})
 		return
 	}
 

@@ -23,7 +23,7 @@ func NewUserService(repo *repositories.UserRepository, client *config.RedisClien
 }
 
 // Register a new user
-func (s *UserService) Register(username, password string) (*models.User, error) {
+func (s *UserService) Register(username, password, fullname string) (*models.User, error) {
 
 	existingUser, err := s.UserRepo.FindByUsername(username)
 	if err != nil {
@@ -42,6 +42,7 @@ func (s *UserService) Register(username, password string) (*models.User, error) 
 	user := &models.User{
 		Username: username,
 		Password: string(hashedPassword),
+		FullName: fullname,
 	}
 
 	err = s.UserRepo.Create(user)
@@ -81,7 +82,7 @@ func (s *UserService) ChangePassword(userId uint, oldPassword, newPassword strin
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
 	if err != nil {
-		return errors.New("incorrect old password")
+		return errors.New("incorrect current password")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)

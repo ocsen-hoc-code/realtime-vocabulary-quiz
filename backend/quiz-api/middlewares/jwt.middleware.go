@@ -49,6 +49,7 @@ func NewJWTMiddleware(redisClient *config.RedisClient) JWTMiddleware {
 
 		userID := uint(claims["user_id"].(float64))
 		sessionUUID := claims["session_uuid"].(string)
+		fullName := claims["fullname"].(string)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -69,6 +70,7 @@ func NewJWTMiddleware(redisClient *config.RedisClient) JWTMiddleware {
 		}
 
 		c.Set("userID", userID)
+		c.Set("fullName", fullName)
 		c.Next()
 	}
 }

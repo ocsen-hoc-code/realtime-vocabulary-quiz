@@ -20,6 +20,7 @@ func GenerateToken(user *models.User) (string, string, error) {
 		"user_id":      user.ID,
 		"session_uuid": sessionUUID,
 		"username":     user.Username,
+		"fullname":     user.FullName,
 		"is_admin":     user.IsAdmin,
 		"exp":          time.Now().Add(time.Hour * 24).Unix(),
 	}
