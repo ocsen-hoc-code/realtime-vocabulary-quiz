@@ -18,6 +18,7 @@ func GenerateToken(user *models.User) (string, string, error) {
 	sessionUUID := uuid.New()
 	claims := jwt.MapClaims{
 		"user_id":      user.ID,
+		"user_uuid":    user.UUID,
 		"session_uuid": sessionUUID,
 		"username":     user.Username,
 		"fullname":     user.FullName,

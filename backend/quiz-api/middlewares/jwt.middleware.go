@@ -48,6 +48,7 @@ func NewJWTMiddleware(redisClient *config.RedisClient) JWTMiddleware {
 		}
 
 		userID := uint(claims["user_id"].(float64))
+		userUUID := claims["user_uuid"].(string)
 		sessionUUID := claims["session_uuid"].(string)
 		fullName := claims["fullname"].(string)
 
@@ -70,6 +71,7 @@ func NewJWTMiddleware(redisClient *config.RedisClient) JWTMiddleware {
 		}
 
 		c.Set("userID", userID)
+		c.Set("userUUID", userUUID)
 		c.Set("fullName", fullName)
 		c.Next()
 	}
