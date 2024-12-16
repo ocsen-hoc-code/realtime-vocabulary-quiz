@@ -1,10 +1,13 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"quiz-api/models"
 	"quiz-api/repositories"
+	"time"
 
+	"github.com/gocql/gocql"
 	"github.com/google/uuid"
 )
 
@@ -12,11 +15,12 @@ import (
 type QuizService struct {
 	quizRepo     *repositories.QuizRepository
 	kafkaService *KafkaService
+	scyllaRepo   *repositories.ScyllaDBRepository
 }
 
 // NewQuizService initializes a new QuizService
-func NewQuizService(quizRepo *repositories.QuizRepository, kafkaService *KafkaService) *QuizService {
-	return &QuizService{quizRepo: quizRepo, kafkaService: kafkaService}
+func NewQuizService(quizRepo *repositories.QuizRepository, kafkaService *KafkaService, scyllaRepo *repositories.ScyllaDBRepository) *QuizService {
+	return &QuizService{quizRepo: quizRepo, kafkaService: kafkaService, scyllaRepo: scyllaRepo}
 }
 
 // CreateQuiz creates a new quiz
@@ -90,4 +94,66 @@ func (s *QuizService) RevokeQuiz(uuid string, socketID string) error {
 	}
 
 	return nil
+}
+
+func (s *QuizService) QuizStatus(userUUID, quizUUID string) (*models.UserQuiz, error) {
+	conditions := map[string]interface{}{
+		"user_uuid": userUUID,
+		"quiz_uuid": quizUUID,
+	}
+
+	records, err := s.scyllaRepo.SelectRecords("user_quizs", []string{"current_question_uuid", "score", "created_at", "updated_at"}, conditions, "", 1)
+	if err == nil && len(records) > 0 {
+		record := records[0]
+		questionUUID, ok := record["current_question_uuid"].(gocql.UUID)
+		if !ok {
+			return nil, fmt.Errorf("invalid or missing current_question_uuid")
+		}
+		userQuiz := &models.UserQuiz{
+			UserUUID:            userUUID,
+			QuizUUID:            quizUUID,
+			CurrentQuestionUUID: questionUUID.String(),
+			Score:               record["score"].(int),
+			CreatedAt:           record["created_at"].(time.Time),
+			UpdatedAt:           record["updated_at"].(time.Time),
+		}
+
+		return userQuiz, nil
+	}
+
+	quizRecords, err := s.scyllaRepo.SelectRecords("quizs", []string{"question_uuid"}, map[string]interface{}{"quiz_uuid": quizUUID}, "", 1)
+	if err != nil || len(quizRecords) == 0 {
+		return nil, err
+	}
+
+	questionUUID, ok := quizRecords[0]["question_uuid"].(gocql.UUID)
+	if !ok {
+		return nil, fmt.Errorf("invalid or missing question_uuid")
+	}
+	newUserQuiz := &models.UserQuiz{
+		UserUUID:            userUUID,
+		QuizUUID:            quizUUID,
+		CurrentQuestionUUID: questionUUID.String(),
+		Score:               0,
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
+	}
+
+	data := map[string]interface{}{
+		"user_uuid":             newUserQuiz.UserUUID,
+		"quiz_uuid":             newUserQuiz.QuizUUID,
+		"current_question_uuid": newUserQuiz.CurrentQuestionUUID,
+		"score":                 newUserQuiz.Score,
+		"created_at":            newUserQuiz.CreatedAt,
+		"updated_at":            newUserQuiz.UpdatedAt,
+	}
+
+	if err := s.scyllaRepo.InsertRecord("user_quizs", data, []string{"user_uuid", "quiz_uuid", "current_question_uuid", "score", "created_at", "updated_at"}); err != nil {
+		return nil, err
+	}
+
+	message, _ := json.Marshal(newUserQuiz)
+	s.kafkaService.PublishMessage("user_quiz_export", fmt.Sprintf("%s|%s", userUUID, quizUUID), string(message))
+
+	return newUserQuiz, nil
 }

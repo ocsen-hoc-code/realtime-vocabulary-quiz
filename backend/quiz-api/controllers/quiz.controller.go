@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"net/http"
 	"quiz-api/models"
 	"quiz-api/services"
 	"quiz-api/utils"
@@ -152,4 +153,17 @@ func (ctrl *QuizController) RevokeQuiz(c *gin.Context) {
 	}
 
 	utils.SendSuccess(c, nil)
+}
+
+func (ctrl *QuizController) GetQuizStatus(c *gin.Context) {
+	quizUUID := c.Param("quiz-uuid")
+	userUUID := c.GetString("userUUID")
+
+	result, err := ctrl.quizService.QuizStatus(userUUID, quizUUID)
+	if err != nil {
+		utils.SendError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.SendSuccess(c, result)
 }

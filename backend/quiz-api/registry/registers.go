@@ -15,7 +15,7 @@ func RegisterTopics(logger *logrus.Logger, quizExportSerice *services.QuizExport
 		GroupID:   os.Getenv("KAFKA_GROUP_ID"),
 		Username:  os.Getenv("KAFKA_USERNAME"),
 		Password:  os.Getenv("KAFKA_PASSWORD"),
-		Topics:    []string{"quiz_export", "revoke_quiz"},
+		Topics:    []string{"quiz_export", "revoke_quiz", "user_quiz_export"},
 		Consumers: consumers.RegisterKafkaConsumers(logger, quizExportSerice),
 		Logger:    logger,
 	}

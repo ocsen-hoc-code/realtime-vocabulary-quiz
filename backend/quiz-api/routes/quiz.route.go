@@ -13,6 +13,7 @@ func QuizRoutes(router *gin.Engine, container *dig.Container) error {
 	err := container.Invoke(func(quizController *controllers.QuizController, jwtMiddleware middlewares.JWTMiddleware, adminMiddleware middlewares.AdminMiddleware, loggingMiddleware middlewares.LoggingMiddleware) {
 
 		router.GET("quizzes/", gin.HandlerFunc(jwtMiddleware), quizController.GetQuizzes)
+		router.GET("quiz-status/:quiz-uuid", gin.HandlerFunc(jwtMiddleware), gin.HandlerFunc(adminMiddleware), quizController.GetQuizStatus)
 		quizGroup := router.Group("/quizzes")
 		{
 			quizGroup.Use(gin.HandlerFunc(adminMiddleware))
