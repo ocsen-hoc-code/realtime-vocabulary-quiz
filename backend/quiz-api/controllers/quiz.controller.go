@@ -158,8 +158,9 @@ func (ctrl *QuizController) RevokeQuiz(c *gin.Context) {
 func (ctrl *QuizController) GetQuizStatus(c *gin.Context) {
 	quizUUID := c.Param("quiz-uuid")
 	userUUID := c.GetString("userUUID")
+	fullName := c.GetString("fullName")
 
-	result, err := ctrl.quizService.QuizStatus(userUUID, quizUUID)
+	result, err := ctrl.quizService.QuizStatus(userUUID, quizUUID, fullName)
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, err.Error())
 		return

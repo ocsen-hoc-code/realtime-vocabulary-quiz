@@ -65,9 +65,10 @@ func (s *QuizService) QuizExport(uuid string, socketID string) error {
 	}
 
 	// Attempt to publish the export message
-	if err := s.kafkaService.PublishMessage("quiz_export", uuid, socketID); err != nil {
-		return fmt.Errorf("failed to publish quiz export message for UUID %s: %w", uuid, err)
-	}
+	s.kafkaService.PublishMessage("quiz_export", uuid, socketID)
+	// if err := s.kafkaService.PublishMessage("quiz_export", uuid, socketID); err != nil {
+	// 	return fmt.Errorf("failed to publish quiz export message for UUID %s: %w", uuid, err)
+	// }
 
 	return nil
 }
@@ -89,29 +90,33 @@ func (s *QuizService) RevokeQuiz(uuid string, socketID string) error {
 	}
 
 	// Attempt to publish the export message
-	if err := s.kafkaService.PublishMessage("revoke_quiz", uuid, socketID); err != nil {
-		return fmt.Errorf("failed to publish quiz export message for UUID %s: %w", uuid, err)
-	}
+	s.kafkaService.PublishMessage("revoke_quiz", uuid, socketID)
+	// if err := s.kafkaService.PublishMessage("revoke_quiz", uuid, socketID); err != nil {
+	// 	return fmt.Errorf("failed to publish quiz export message for UUID %s: %w", uuid, err)
+	// }
 
 	return nil
 }
 
-func (s *QuizService) QuizStatus(userUUID, quizUUID string) (*models.UserQuiz, error) {
+func (s *QuizService) QuizStatus(userUUID, quizUUID, fullName string) (*models.UserQuiz, error) {
 	conditions := map[string]interface{}{
 		"user_uuid": userUUID,
 		"quiz_uuid": quizUUID,
 	}
 
-	records, err := s.scyllaRepo.SelectRecords("user_quizs", []string{"current_question_uuid", "score", "created_at", "updated_at"}, conditions, "", 1)
+	records, err := s.scyllaRepo.SelectRecords("user_quizs", []string{"current_question_uuid", "fullname", "score", "created_at", "updated_at"}, conditions, "", 1)
+
 	if err == nil && len(records) > 0 {
 		record := records[0]
 		questionUUID, ok := record["current_question_uuid"].(gocql.UUID)
 		if !ok {
 			return nil, fmt.Errorf("invalid or missing current_question_uuid")
 		}
+
 		userQuiz := &models.UserQuiz{
 			UserUUID:            userUUID,
 			QuizUUID:            quizUUID,
+			FullName:            record["fullname"].(string),
 			CurrentQuestionUUID: questionUUID.String(),
 			Score:               record["score"].(int),
 			CreatedAt:           record["created_at"].(time.Time),
@@ -133,6 +138,7 @@ func (s *QuizService) QuizStatus(userUUID, quizUUID string) (*models.UserQuiz, e
 	newUserQuiz := &models.UserQuiz{
 		UserUUID:            userUUID,
 		QuizUUID:            quizUUID,
+		FullName:            fullName,
 		CurrentQuestionUUID: questionUUID.String(),
 		Score:               0,
 		CreatedAt:           time.Now(),
@@ -142,13 +148,14 @@ func (s *QuizService) QuizStatus(userUUID, quizUUID string) (*models.UserQuiz, e
 	data := map[string]interface{}{
 		"user_uuid":             newUserQuiz.UserUUID,
 		"quiz_uuid":             newUserQuiz.QuizUUID,
+		"fullname":              newUserQuiz.FullName,
 		"current_question_uuid": newUserQuiz.CurrentQuestionUUID,
 		"score":                 newUserQuiz.Score,
 		"created_at":            newUserQuiz.CreatedAt,
 		"updated_at":            newUserQuiz.UpdatedAt,
 	}
 
-	if err := s.scyllaRepo.InsertRecord("user_quizs", data, []string{"user_uuid", "quiz_uuid", "current_question_uuid", "score", "created_at", "updated_at"}); err != nil {
+	if err := s.scyllaRepo.InsertRecord("user_quizs", data, []string{"user_uuid", "quiz_uuid", "fullname", "current_question_uuid", "score", "created_at", "updated_at"}); err != nil {
 		return nil, err
 	}
 

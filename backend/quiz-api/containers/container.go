@@ -46,7 +46,7 @@ func BuildContainer() *dig.Container {
 
 	container.Provide(registry.RegisterTopics)
 	container.Provide(func(cfg services.KafkaConfig) *services.KafkaService {
-		return services.NewKafkaService(cfg)
+		return services.NewKafkaService(cfg, 10)
 	})
 
 	return container

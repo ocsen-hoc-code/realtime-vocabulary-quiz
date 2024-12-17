@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -10,12 +11,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// KafkaMessage defines the structure of a Kafka message
+type KafkaMessage struct {
+	Topic string
+	Key   string
+	Value string
+}
+
 // KafkaService handles Kafka producer and consumer operations
 type KafkaService struct {
 	writer        *kafka.Writer
 	readerConfig  kafka.ReaderConfig
 	topicHandlers map[string]func(key, value string)
 	logger        *logrus.Logger
+	messageQueue  chan KafkaMessage // Channel for worker pool
+	workerCount   int
+	wg            sync.WaitGroup
 }
 
 // KafkaConfig holds configuration for KafkaService
@@ -31,7 +42,6 @@ type KafkaConfig struct {
 
 // EnsureTopicExists checks if a topic exists and creates it if it doesn't
 func EnsureTopicExists(broker, topic, username, password string, numPartitions, replicationFactor int) error {
-	// Create a SASL Dialer for authentication
 	dialer := &kafka.Dialer{
 		SASLMechanism: plain.Mechanism{
 			Username: username,
@@ -39,27 +49,17 @@ func EnsureTopicExists(broker, topic, username, password string, numPartitions, 
 		},
 	}
 
-	// Connect to the Kafka broker
 	conn, err := dialer.DialContext(context.Background(), "tcp", broker)
 	if err != nil {
 		return fmt.Errorf("failed to connect to broker: %v", err)
 	}
 	defer conn.Close()
 
-	// List existing topics
-	_, err = conn.Brokers()
-	if err != nil {
-		return fmt.Errorf("failed to fetch brokers metadata: %v", err)
-	}
-
-	// Check if the topic already exists
 	partitions, err := conn.ReadPartitions(topic)
 	if err == nil && len(partitions) > 0 {
-		fmt.Printf("Topic %s already exists\n", topic)
 		return nil
 	}
 
-	// If topic doesn't exist, create it
 	err = conn.CreateTopics(kafka.TopicConfig{
 		Topic:             topic,
 		NumPartitions:     numPartitions,
@@ -69,12 +69,11 @@ func EnsureTopicExists(broker, topic, username, password string, numPartitions, 
 		return fmt.Errorf("failed to create topic: %v", err)
 	}
 
-	fmt.Printf("Topic %s created successfully\n", topic)
 	return nil
 }
 
 // NewKafkaService initializes the KafkaService with SASL/PLAIN authentication
-func NewKafkaService(cfg KafkaConfig) *KafkaService {
+func NewKafkaService(cfg KafkaConfig, workerCount int) *KafkaService {
 	dialer := &kafka.Dialer{
 		SASLMechanism: plain.Mechanism{
 			Username: cfg.Username,
@@ -99,7 +98,7 @@ func NewKafkaService(cfg KafkaConfig) *KafkaService {
 		}
 	}
 
-	return &KafkaService{
+	service := &KafkaService{
 		writer: &kafka.Writer{
 			Addr:     kafka.TCP(cfg.Broker),
 			Balancer: &kafka.LeastBytes{},
@@ -116,37 +115,49 @@ func NewKafkaService(cfg KafkaConfig) *KafkaService {
 			Dialer:         dialer,
 			MinBytes:       10e3, // 10KB
 			MaxBytes:       10e6, // 10MB
-			CommitInterval: 0,    // Manual offset commit
+			CommitInterval: 0,
 			StartOffset:    kafka.FirstOffset,
 		},
 		topicHandlers: cfg.Consumers,
 		logger:        cfg.Logger,
+		messageQueue:  make(chan KafkaMessage, 100), // Buffered channel
+		workerCount:   workerCount,
+	}
+
+	// Start worker pool
+	service.startWorkerPool()
+
+	return service
+}
+
+// startWorkerPool initializes the worker pool
+func (k *KafkaService) startWorkerPool() {
+	for i := 0; i < k.workerCount; i++ {
+		k.wg.Add(1)
+		go k.worker(i)
 	}
 }
 
-// PublishMessage publishes a message to a Kafka topic
+// worker listens to the messageQueue and processes messages
+func (k *KafkaService) worker(workerID int) {
+	defer k.wg.Done()
+	for msg := range k.messageQueue {
+		err := k.writer.WriteMessages(context.Background(), kafka.Message{
+			Topic: msg.Topic,
+			Key:   []byte(msg.Key),
+			Value: []byte(msg.Value),
+		})
+		if err != nil {
+			k.logger.Errorf("Worker %d: Failed to publish message to topic %s: %v", workerID, msg.Topic, err)
+		} else {
+			k.logger.Infof("Worker %d: Published message to topic %s", workerID, msg.Topic)
+		}
+	}
+}
+
+// PublishMessage adds a message to the queue for worker processing
 func (k *KafkaService) PublishMessage(topic, key, value string) error {
-	message := kafka.Message{
-		Key:   []byte(key),
-		Value: []byte(value),
-		Topic: topic, // Set topic explicitly for the message
-	}
-
-	err := k.writer.WriteMessages(context.Background(), message)
-	if err != nil {
-		k.logger.WithFields(logrus.Fields{
-			"topic": topic,
-			"key":   key,
-			"error": err.Error(),
-		}).Error("Failed to publish message")
-		return err
-	}
-
-	k.logger.WithFields(logrus.Fields{
-		"topic": topic,
-		"key":   key,
-		"value": value,
-	}).Info("Message published successfully")
+	k.messageQueue <- KafkaMessage{Topic: topic, Key: key, Value: value}
 	return nil
 }
 
@@ -161,7 +172,7 @@ func (k *KafkaService) StartConsumer(topics []string) {
 				Topic:          topic,
 				MinBytes:       k.readerConfig.MinBytes,
 				MaxBytes:       k.readerConfig.MaxBytes,
-				CommitInterval: 0, // Disable auto-commit for manual commits
+				CommitInterval: 0,
 				StartOffset:    kafka.LastOffset,
 				MaxWait:        100 * time.Millisecond,
 			})
@@ -181,22 +192,10 @@ func (k *KafkaService) StartConsumer(topics []string) {
 
 				if handler, ok := k.topicHandlers[topic]; ok {
 					handler(string(msg.Key), string(msg.Value))
-
 					err = reader.CommitMessages(context.Background(), msg)
 					if err != nil {
-						k.logger.WithFields(logrus.Fields{
-							"topic": topic,
-							"key":   string(msg.Key),
-							"error": err.Error(),
-						}).Error("Error committing message")
-					} else {
-						k.logger.WithFields(logrus.Fields{
-							"topic": topic,
-							"key":   string(msg.Key),
-						}).Info("Message committed successfully")
+						k.logger.Errorf("Error committing message: %v", err)
 					}
-				} else {
-					k.logger.WithField("topic", topic).Warn("No handler found for topic")
 				}
 			}
 		}(topic)
@@ -205,6 +204,8 @@ func (k *KafkaService) StartConsumer(topics []string) {
 
 // Close releases resources and flushes logs
 func (k *KafkaService) Close() {
+	close(k.messageQueue)
+	k.wg.Wait()
 	if k.writer != nil {
 		k.writer.Close()
 	}

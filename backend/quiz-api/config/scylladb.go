@@ -25,14 +25,15 @@ type ScyllaDB struct {
 var tableQueries = []string{
 	`
     CREATE TABLE IF NOT EXISTS user_quizs (
-        user_uuid UUID,
-        quiz_uuid UUID,
-        current_question_uuid UUID,
+		quiz_uuid UUID,
 		score INT,
-        created_at TIMESTAMP,
-        updated_at TIMESTAMP,
-        PRIMARY KEY (user_uuid, quiz_uuid)
-    );`,
+		user_uuid UUID,
+		fullname TEXT,
+		current_question_uuid UUID,
+		created_at TIMESTAMP,
+		updated_at TIMESTAMP,
+		PRIMARY KEY (quiz_uuid, score, user_uuid)
+	) WITH CLUSTERING ORDER BY (score DESC);`,
 	`
     CREATE TABLE IF NOT EXISTS questions (
         quiz_uuid UUID,
