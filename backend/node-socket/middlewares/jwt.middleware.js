@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
-const RedisClient = require("../config/redis"); // Import Redis client singleton
+const RedisClient = require("../config/redis");
+const logger = require("../utils/logger"); // Import centralized logger
 
 /**
  * Socket.IO JWT Middleware with session validation via Redis.
@@ -8,46 +9,53 @@ const authSocket = async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
 
+    // Check if token exists
     if (!token) {
-      console.error("❌ No token provided in socket handshake");
+      logger.error("Authentication error: No token provided");
       return next(new Error("Authentication error: No token provided"));
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded) {
-      console.error("❌ Invalid token");
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      logger.error(`Authentication error: Invalid token - ${err.message}`);
       return next(new Error("Authentication error: Invalid token"));
     }
 
-    const { user_id, session_uuid } = decoded;
+    const { user_id, session_uuid, fullname } = decoded;
 
+    // Validate token claims
     if (!user_id || !session_uuid) {
-      console.error("❌ Missing user_id or session_uuid in token claims");
+      logger.error("Authentication error: Missing user_id or session_uuid in token");
       return next(new Error("Authentication error: Invalid token claims"));
     }
 
-    const redisKey = `user:${user_id}`;
+    // Check session in Redis
     const redisClient = RedisClient.getClient();
+    if (!redisClient) {
+      logger.error("Authentication error: Redis client not initialized");
+      return next(new Error("Authentication error: Redis unavailable"));
+    }
 
-    const storedSessionUUID = await redisClient.get(redisKey);
-
+    const storedSessionUUID = await redisClient.get(`user:${user_id}`);
     if (!storedSessionUUID) {
-      console.error("❌ Session not found in Redis");
+      logger.error("Authentication error: Session not found in Redis");
       return next(new Error("Authentication error: Session not found"));
     }
-  
-    if (storedSessionUUID.replaceAll('"', "") !== session_uuid) {
-      console.error("❌ Session mismatch");
+
+    if (storedSessionUUID.replaceAll('"', "") !== session_uuid.trim()) {
+      logger.error("Authentication error: Session mismatch");
       return next(new Error("Authentication error: Session mismatch"));
     }
 
-    socket.user = { user_id, session_uuid };
-    console.log("✅ Authentication successful for user:", user_id);
-
+    // Attach user info to socket
+    socket.user = { user_id, session_uuid, fullname };
     next();
   } catch (err) {
-    console.error("❌ Authentication error:", err.message);
-    return next(new Error("Authentication error: " + err.message));
+    logger.error(`Unexpected authentication error: ${err.message}`);
+    return next(new Error("Authentication error: Internal server error"));
   }
 };
 

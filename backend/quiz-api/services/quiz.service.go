@@ -1,8 +1,11 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"quiz-api/config"
+	"quiz-api/dto"
 	"quiz-api/models"
 	"quiz-api/repositories"
 	"time"
@@ -16,11 +19,12 @@ type QuizService struct {
 	quizRepo     *repositories.QuizRepository
 	kafkaService *KafkaService
 	scyllaRepo   *repositories.ScyllaDBRepository
+	redisClient  *config.RedisClient
 }
 
 // NewQuizService initializes a new QuizService
-func NewQuizService(quizRepo *repositories.QuizRepository, kafkaService *KafkaService, scyllaRepo *repositories.ScyllaDBRepository) *QuizService {
-	return &QuizService{quizRepo: quizRepo, kafkaService: kafkaService, scyllaRepo: scyllaRepo}
+func NewQuizService(quizRepo *repositories.QuizRepository, kafkaService *KafkaService, scyllaRepo *repositories.ScyllaDBRepository, redisClient *config.RedisClient) *QuizService {
+	return &QuizService{quizRepo: quizRepo, kafkaService: kafkaService, scyllaRepo: scyllaRepo, redisClient: redisClient}
 }
 
 // CreateQuiz creates a new quiz
@@ -163,4 +167,58 @@ func (s *QuizService) QuizStatus(userUUID, quizUUID, fullName string) (*models.U
 	s.kafkaService.PublishMessage("user_quiz_export", fmt.Sprintf("%s|%s", userUUID, quizUUID), string(message))
 
 	return newUserQuiz, nil
+}
+
+func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string, limit int) ([]*dto.UserQuizDTO, error) {
+	// Validate input UUID
+	if quizUUID == "" {
+		return nil, fmt.Errorf("invalid quiz_uuid: cannot be empty")
+	}
+
+	// Validate limit, fallback to a default value
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// Generate cache key based on quizUUID and limit
+	cacheKey := fmt.Sprintf("top_scores:%s:%d", quizUUID, limit)
+
+	// Check if data exists in Redis cache
+	var topScores []*dto.UserQuizDTO
+	err := s.redisClient.Get(ctx, cacheKey, &topScores)
+	if err == nil && len(topScores) > 0 {
+		// Cache hit: return the cached result
+		fmt.Println("✅ Cache hit for:", cacheKey)
+		return topScores, nil
+	}
+
+	conditions := map[string]interface{}{
+		"quiz_uuid": quizUUID,
+	}
+	columns := []string{"user_uuid", "fullname", "score"}
+
+	records, err := s.scyllaRepo.SelectRecords("user_quizs", columns, conditions, "", limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve top scores: %w", err)
+	}
+
+	// Map results to DTO
+	topScores = make([]*dto.UserQuizDTO, 0, len(records))
+	for _, record := range records {
+		userQuiz := &dto.UserQuizDTO{
+			QuizUUID: quizUUID,
+			UserUUID: record["user_uuid"].(gocql.UUID).String(),
+			FullName: record["fullname"].(string),
+			Score:    record["score"].(int),
+		}
+		topScores = append(topScores, userQuiz)
+	}
+
+	// Cache the result in Redis with a 30-second expiration
+	err = s.redisClient.Set(ctx, cacheKey, topScores, 30*time.Second)
+	if err != nil {
+		fmt.Printf("❌ Failed to cache top scores: %v\n", err)
+	}
+
+	return topScores, nil
 }

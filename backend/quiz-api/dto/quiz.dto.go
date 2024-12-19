@@ -21,3 +21,10 @@ type QuizResponseDTO struct {
 	CreatedAt   time.Time             `json:"created_at"`
 	UpdatedAt   time.Time             `json:"updated_at"`
 }
+
+type UserQuizDTO struct {
+	UserUUID string `json:"user_uuid"`
+	QuizUUID string `json:"quiz_uuid"`
+	FullName string `json:"fullname"`
+	Score    int    `json:"score"`
+}
