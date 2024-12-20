@@ -1,0 +1,13 @@
+{
+  "name": "realtime-vocabulary-quiz",
+  "version": "1.0.0",
+  "scripts": {
+    "socket": "cd backend/node-socket && npm instal && node index.js",
+    "api": "cd backend/quiz-api && go mod tidy && go run .",
+    "admin": "cd frontend/quiz-admin-dashboard && npm instal && npm start",
+    "client": "cd frontend/quiz-client && npm instal && npm start"
+  },
+  "repository": "git@github.com:ocsen-hoc-code/realtime-vocabulary-quiz.git",
+  "author": "Dawn Do <ocsen.hoc.code@gmail.com>",
+  "license": "MIT"
+}
