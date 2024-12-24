@@ -37,11 +37,11 @@ class ScyllaDBRepository {
    * @param {Array} columns
    * @param {Object} conditions
    */
-  async selectRecords(tableName, columns, conditions) {
+  async selectRecords(tableName, columns, conditions, limit) {
     const whereClause = Object.keys(conditions)
       .map((col) => `${col} = ?`)
       .join(" AND ");
-    const query = `SELECT ${columns.join(", ")} FROM ${tableName} WHERE ${whereClause}`;
+    const query = `SELECT ${columns.join(", ")} FROM ${tableName} WHERE ${whereClause} ${limit ? `LIMIT ${limit}` : ""}`;
     const values = Object.values(conditions);
 
     console.log("Executing query:", query, values);

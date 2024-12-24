@@ -17,7 +17,7 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
     let updatedUserQuiz = null;
 
     // Fetch quiz, user quiz, and question data in parallel
-    const [quizResult, userQuizResult, questionResult] = await Promise.all([
+    const [quizResult, userQuizResult, questionResult, topScoresResult] = await Promise.all([
       scyllaRepo.selectRecords("quizs", ["total_time"], {
         quiz_uuid: quizUUID,
       }),
@@ -33,6 +33,12 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
           quiz_uuid: quizUUID,
           question_uuid: questionUUID,
         }
+      ),
+      scyllaRepo.selectRecords(
+        "user_quizs",
+        ["user_uuid", "score", "created_at", "updated_at", "fullname", "current_question_uuid"],
+        { quiz_uuid: quizUUID },
+        10
       ),
     ]);
 
@@ -64,9 +70,27 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
     const questionScore = questionResult[0].score;
     const nextQuestionUUID = questionResult[0].next_question_uuid;
     let updatedScore = score;
+
     // Check if the user's answer is correct
     if (correctAnswers === answers) {
       updatedScore += questionScore;
+    }
+
+    // Determine if the user has a top score
+    let isTopScore = false;
+    if (updatedScore > 0) {
+      // Check if topScoresResult is empty
+      if (topScoresResult.length === 0) {
+        isTopScore = true; // Automatically true if no top scores exist
+      } else {
+        // Check if updatedScore is greater than or equal to any score in topScoresResult
+        isTopScore = topScoresResult.some((user) => {
+          if (user.user_uuid === userUUID && user.score === updatedScore) {
+            return false; // Same user with the same score, not considered as a new top score
+          }
+          return updatedScore >= user.score;
+        });
+      }
     }
 
     // Update user's score in the database
@@ -120,14 +144,16 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
     updatedUserQuiz = { ...userQuizResult[0] };
     updatedUserQuiz.score = updatedScore;
     updatedUserQuiz.current_question_uuid = nextQuestionUUID;
+
     // Send updated data to Kafka for further processing
     sendKafkaMessage(userUUID, quizUUID, updatedUserQuiz);
 
-    // Return success with updated score
+    // Return success with updated score and top score status
     return {
       success: true,
       result: updatedUserQuiz,
       correct_answers: correctAnswers,
+      is_top_score: isTopScore,
     };
   } catch (error) {
     // Log any errors that occur during score calculation

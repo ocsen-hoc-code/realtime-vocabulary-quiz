@@ -70,11 +70,11 @@ class SocketServer {
       }
 
       try {
-        const { success, result, correct_answers } = await calculateScore(
+        const { success, result, correct_answers, is_top_score } = await calculateScore(
           quiz_id,
           question_id,
           socket.user.user_uuid,
-          answers
+          answers,
         );
 
         if (!success) {
@@ -84,7 +84,7 @@ class SocketServer {
 
         socket.emit("update_result", { result, correct_answers });
 
-        if (socket.user?.user_uuid && result.score > 0) {
+        if (socket.user?.user_uuid && result.score > 0 && is_top_score) {
           socket.to(quiz_id).emit("update_leaderboard", {
             user_uuid: socket.user.user_uuid,
             fullname: socket.user.fullname,
