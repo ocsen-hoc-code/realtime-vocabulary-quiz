@@ -98,6 +98,24 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
       ]
     );
 
+    await scyllaRepo.insertRecord(
+      "user_answers",
+      {
+        quiz_uuid: quizUUID,
+        user_uuid: userUUID,
+        question_uuid: questionUUID,
+        answers,
+        answer_time: new Date(),
+      },
+      [
+        "quiz_uuid",
+        "user_uuid",
+        "question_uuid",
+        "answers",
+        "answer_time"
+      ]
+    );
+
     // Prepare updated user data
     updatedUserQuiz = { ...userQuizResult[0] };
     updatedUserQuiz.score = updatedScore;
