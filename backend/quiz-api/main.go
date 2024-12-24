@@ -17,7 +17,7 @@ func main() {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
+		AllowHeaders: []string{"Origin", "Content-Type", "Authorization", "Cache-Control", "Pragma", "Expires"},
 	}))
 
 	staticHandler := http.FileServer(http.Dir("./static"))

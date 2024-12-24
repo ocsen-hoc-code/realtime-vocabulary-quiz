@@ -3,9 +3,10 @@ import api from "./axios";
 export const login = async (username, password) => {
   try {
     const response = await api.post("/login", { username, password });
-    const { token, fullname, is_admin } = response.data;
+    const { token, uuid, fullname, is_admin } = response.data;
     localStorage.setItem("token", token);
     localStorage.setItem("fullname", fullname);
+    localStorage.setItem("uuid", uuid);
     return { success: true, token, is_admin };
   } catch (error) {
     return {

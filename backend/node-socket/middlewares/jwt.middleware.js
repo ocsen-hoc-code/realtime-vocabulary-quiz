@@ -24,7 +24,7 @@ const authSocket = async (socket, next) => {
       return next(new Error("Authentication error: Invalid token"));
     }
 
-    const { user_id, session_uuid, fullname } = decoded;
+    const { user_id, session_uuid, user_uuid, fullname } = decoded;
 
     // Validate token claims
     if (!user_id || !session_uuid) {
@@ -51,7 +51,7 @@ const authSocket = async (socket, next) => {
     }
 
     // Attach user info to socket
-    socket.user = { user_id, session_uuid, fullname };
+    socket.user = { user_id, session_uuid, fullname , user_uuid};
     next();
   } catch (err) {
     logger.error(`Unexpected authentication error: ${err.message}`);

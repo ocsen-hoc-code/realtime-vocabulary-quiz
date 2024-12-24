@@ -108,7 +108,7 @@ func (s *QuizService) QuizStatus(userUUID, quizUUID, fullName string) (*models.U
 		"quiz_uuid": quizUUID,
 	}
 
-	records, err := s.scyllaRepo.SelectRecords("user_quizs", []string{"current_question_uuid", "fullname", "score", "created_at", "updated_at"}, conditions, "", 1)
+	records, err := s.scyllaRepo.SelectRecords("user_quizs_by_user", []string{"current_question_uuid", "fullname", "score", "created_at", "updated_at"}, conditions, "", 1)
 
 	if err == nil && len(records) > 0 {
 		record := records[0]

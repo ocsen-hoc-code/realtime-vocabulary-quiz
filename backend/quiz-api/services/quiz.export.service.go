@@ -123,7 +123,7 @@ func (s *QuizExportService) ExportQuiz(quizUUID string, socketId string) (error,
 			return fmt.Errorf("failed to write question file: %v", err), quiz.Title
 		}
 
-		columns := []string{"quiz_uuid", "question_uuid", "prev_question_uuid", "next_question_uuid", "answers"}
+		columns := []string{"quiz_uuid", "question_uuid", "prev_question_uuid", "next_question_uuid", "answers", "score"}
 
 		questionRecord := map[string]interface{}{
 			"quiz_uuid":          quiz.UUID,
@@ -131,6 +131,7 @@ func (s *QuizExportService) ExportQuiz(quizUUID string, socketId string) (error,
 			"prev_question_uuid": prevQuestionUUID,
 			"next_question_uuid": nextQuestionUUID,
 			"answers":            correctAnswersString,
+			"score":              question.Score,
 		}
 
 		if err := s.scyllaRepo.InsertRecord("questions", questionRecord, columns); err != nil {

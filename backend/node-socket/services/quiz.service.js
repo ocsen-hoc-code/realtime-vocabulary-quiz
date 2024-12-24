@@ -18,69 +18,97 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
 
     // Fetch quiz, user quiz, and question data in parallel
     const [quizResult, userQuizResult, questionResult] = await Promise.all([
-      scyllaRepo.selectRecords("quizs", ["total_time"], { quiz_uuid: quizUUID }),
+      scyllaRepo.selectRecords("quizs", ["total_time"], {
+        quiz_uuid: quizUUID,
+      }),
       scyllaRepo.selectRecords(
-        "user_quizs",
+        "user_quizs_by_user",
         ["score", "created_at", "fullname", "current_question_uuid"],
         { quiz_uuid: quizUUID, user_uuid: userUUID }
       ),
       scyllaRepo.selectRecords(
         "questions",
-        ["answers", "score"],
-        { quiz_uuid: quizUUID, question_uuid: questionUUID }
+        ["answers", "score", "next_question_uuid"],
+        {
+          quiz_uuid: quizUUID,
+          question_uuid: questionUUID,
+        }
       ),
     ]);
 
     // Validate if all required records exist
-    if (quizResult.length === 0 || userQuizResult.length === 0 || questionResult.length === 0) {
-      logger.error("❌ Invalid data: Missing quiz, user quiz, or question records.");
+    if (
+      quizResult.length === 0 ||
+      userQuizResult.length === 0 ||
+      questionResult.length === 0
+    ) {
+      logger.error(
+        "❌ Invalid data: Missing quiz, user quiz, or question records."
+      );
       return { success: false, result: null };
     }
 
     // Extract quiz duration and user quiz creation time
     const totalTime = quizResult[0].total_time;
-    const { score, created_at } = userQuizResult[0];
+    const { score, fullname, created_at } = userQuizResult[0];
     const quizEndTime = new Date(created_at).getTime() + totalTime;
 
     // Check if the quiz time has expired
-    if (currentTime > quizEndTime) {
-      logger.warn("❌ Quiz time has expired.");
-      return { success: false, result: userQuizResult[0] };
-    }
+    // if (currentTime > quizEndTime) {
+    //   logger.warn("❌ Quiz time has expired.");
+    //   return { success: false, result: userQuizResult[0] };
+    // }
 
     // Extract correct answers and question score
     const correctAnswers = questionResult[0].answers;
     const questionScore = questionResult[0].score;
-
+    const nextQuestionUUID = questionResult[0].next_question_uuid;
+    let updatedScore = score;
     // Check if the user's answer is correct
-    if (correctAnswers === answers.answer) {
-      const updatedScore = score + questionScore;
-
-      // Update user's score in the database
-      await scyllaRepo.updateRecord(
-        "user_quizs",
-        { score: updatedScore, updated_at: new Date() },
-        { quiz_uuid: quizUUID, user_uuid: userUUID }
-      );
-
-      // Prepare updated user data
-      updatedUserQuiz = { ...userQuizResult[0], score: updatedScore };
-
-      // Send updated data to Kafka for further processing
-      sendKafkaMessage(userUUID, quizUUID, updatedUserQuiz);
-
-      // Return success with updated score
-      return {
-        success: true,
-        result: updatedUserQuiz,
-        correct_answers: correctAnswers,
-      };
+    if (correctAnswers === answers) {
+      updatedScore += questionScore;
     }
 
-    // Return failure response if the answer is incorrect
+    // Update user's score in the database
+    await scyllaRepo.deleteRecord("user_quizs", {
+      quiz_uuid: quizUUID,
+      score: score,
+      user_uuid: userUUID,
+    });
+
+    await scyllaRepo.insertRecord(
+      "user_quizs",
+      {
+        quiz_uuid: quizUUID,
+        score: updatedScore,
+        user_uuid: userUUID,
+        fullname,
+        current_question_uuid: nextQuestionUUID,
+        created_at,
+        updated_at: new Date(),
+      },
+      [
+        "quiz_uuid",
+        "score",
+        "user_uuid",
+        "fullname",
+        "current_question_uuid",
+        "created_at",
+        "updated_at",
+      ]
+    );
+
+    // Prepare updated user data
+    updatedUserQuiz = { ...userQuizResult[0] };
+    updatedUserQuiz.score = updatedScore;
+    updatedUserQuiz.current_question_uuid = nextQuestionUUID;
+    // Send updated data to Kafka for further processing
+    sendKafkaMessage(userUUID, quizUUID, updatedUserQuiz);
+
+    // Return success with updated score
     return {
-      success: false,
-      result: userQuizResult[0],
+      success: true,
+      result: updatedUserQuiz,
       correct_answers: correctAnswers,
     };
   } catch (error) {

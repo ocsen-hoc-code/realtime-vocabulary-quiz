@@ -12,17 +12,7 @@ const authSocket = require("./middlewares/jwt.middleware");
   const httpServer = Server.getServer();
   const socketServer = new SocketServer(httpServer);
   await socketServer.initialize(authSocket);
-
-  const io = socketServer.getIO();
-
-  // Handle Socket.IO events
-  io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
-
-    socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
-    });
-  });
+  socketServer.attachEventListeners();
 
   // Start the HTTP server
   const PORT = process.env.PORT || 8082;

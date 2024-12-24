@@ -24,6 +24,7 @@ type LoginResponse struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
 	FullName string `json:"fullname"`
+	UUID     string `json:"uuid"`
 	IsAdmin  bool   `json:"is_admin"`
 	Token    string `json:"token"`
 }

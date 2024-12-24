@@ -18,7 +18,7 @@ class ScyllaDBRepository {
 
     const keys = columns.join(", ");
     const placeholders = columns.map(() => "?").join(", ");
-    const values = columns.map((col) => data[col] || null);
+    const values = columns.map((col) => data[col] ?? null);
 
     const query = `INSERT INTO ${tableName} (${keys}) VALUES (${placeholders})`;
     console.log("Executing query:", query, values);
@@ -100,6 +100,20 @@ class ScyllaDBRepository {
       console.log("✅ Record deleted successfully");
     } catch (error) {
       throw new Error(`Failed to delete record: ${error.message}`);
+    }
+  }
+
+  async queryRecords(tableName, columns, conditions, values)  {
+   
+    const query = `SELECT ${columns.join(", ")} FROM ${tableName} WHERE ${conditions}`;
+  
+    console.log("Executing query:", query, values);
+  
+    try {
+      const result = await this.client.execute(query, values, { prepare: true });
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to retrieve records: ${error.message}`);
     }
   }
 }

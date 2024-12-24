@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { register } from "../services/authService"; // Hàm register xử lý đăng ký
+import { register } from "../services/authService";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const Register = () => {

@@ -63,14 +63,14 @@ class SocketServer {
 
   handleUpdateScore(socket) {
     socket.on("update_score", async ({ quiz_id, question_id, answers }) => {
-      if (!quiz_id || !question_id || !answers || !socket.user?.user_uuid) {
+      if (!quiz_id || !question_id || (!answers && answers != '') || !socket.user?.user_uuid) {
         logger.error("❌ Invalid payload or unauthenticated user");
         socket.emit("error", { message: "Invalid payload or user session" });
         return;
       }
 
       try {
-        const { success, result } = await calculateScore(
+        const { success, result, correct_answers } = await calculateScore(
           quiz_id,
           question_id,
           socket.user.user_uuid,
@@ -82,14 +82,14 @@ class SocketServer {
           return;
         }
 
-        socket.emit("update_result", { result });
+        socket.emit("update_result", { result, correct_answers });
 
         if (socket.user?.user_uuid && result.score > 0) {
           socket.to(quiz_id).emit("update_leaderboard", {
             user_uuid: socket.user.user_uuid,
             fullname: socket.user.fullname,
             score: result.score,
-            correct_answers: result.correct_answers, // Fixed typo
+            correct_answers: correct_answers, // Fixed typo
           });
         }
       } catch (error) {

@@ -4,6 +4,9 @@ const api = axios.create({
   baseURL: 'http://localhost:8080',
   timeout: 10000,
   headers: {
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+    Expires: "0",
     Accept: 'application/json',
     'Content-Type': 'application/json',
   },

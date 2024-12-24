@@ -41,6 +41,7 @@ var tableQueries = []string{
         prev_question_uuid UUID,
         next_question_uuid UUID,
 		answers TEXT,
+		score INT,
         PRIMARY KEY (quiz_uuid, question_uuid)
     );`,
 	`
@@ -58,6 +59,11 @@ var tableQueries = []string{
         question_uuid UUID,
         total_time INT
     );`,
+	`CREATE MATERIALIZED VIEW IF NOT EXISTS user_quizs_by_user AS
+    SELECT quiz_uuid, user_uuid, score, fullname, current_question_uuid, created_at, updated_at
+    FROM user_quizs
+    WHERE quiz_uuid IS NOT NULL AND user_uuid IS NOT NULL AND score IS NOT NULL
+    PRIMARY KEY (user_uuid, quiz_uuid, score);`,
 }
 
 func NewScyllaConfig() (*ScyllaConfig, error) {
