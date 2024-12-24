@@ -23,7 +23,7 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
       }),
       scyllaRepo.selectRecords(
         "user_quizs_by_user",
-        ["score", "created_at", "fullname", "current_question_uuid"],
+        ["score", "created_at", "updated_at", "fullname", "current_question_uuid"],
         { quiz_uuid: quizUUID, user_uuid: userUUID }
       ),
       scyllaRepo.selectRecords(

@@ -6,15 +6,25 @@ const Question = ({ question, onSubmit, correctAnswer }) => {
   const [timeLeft, setTimeLeft] = useState(time_limit);
 
   useEffect(() => {
+    setTimeLeft(time_limit);
+  }, [time_limit]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => Math.max(prev - 1, 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft === 0) {
+      handleSubmit();
+    }
+  }, [timeLeft]);
 
   const handleAnswerSelect = (uuid) => {
-    if (timeLeft === 0 || correctAnswer) return; // Disable selection after time out or when correctAnswer exists
+    if (timeLeft === 0 || correctAnswer) return;
 
     if (type === 1) {
       setSelectedAnswers([uuid]);
@@ -26,20 +36,18 @@ const Question = ({ question, onSubmit, correctAnswer }) => {
   };
 
   const handleSubmit = () => {
-    if (selectedAnswers.length > 0) {
-      onSubmit(selectedAnswers);
-    }
+    onSubmit(selectedAnswers);
   };
 
   const getAnswerStyle = (uuid) => {
-    if (!correctAnswer) return ""; // Default style if no correctAnswer is provided
+    if (!correctAnswer) return "";
 
     const isCorrect = correctAnswer.includes(uuid);
     const isSelected = selectedAnswers.includes(uuid);
 
-    if (isCorrect) return "bg-success text-white"; // Green for correct answers
-    if (!isCorrect && isSelected) return "bg-danger text-white"; // Red for incorrect selected answers
-    return ""; // Default for others
+    if (isCorrect) return "bg-success text-white";
+    if (!isCorrect && isSelected) return "bg-danger text-white";
+    return "";
   };
 
   return (
@@ -54,8 +62,13 @@ const Question = ({ question, onSubmit, correctAnswer }) => {
           {answers.map((answer) => (
             <li
               key={answer.uuid}
-              className={`list-group-item d-flex align-items-center ${getAnswerStyle(answer.uuid)}`}
-              style={{ cursor: timeLeft > 0 && !correctAnswer ? "pointer" : "not-allowed" }}
+              className={`list-group-item d-flex align-items-center ${getAnswerStyle(
+                answer.uuid
+              )}`}
+              style={{
+                cursor:
+                  timeLeft > 0 && !correctAnswer ? "pointer" : "not-allowed",
+              }}
               onClick={() => handleAnswerSelect(answer.uuid)}
             >
               {type === 1 ? (
@@ -82,7 +95,9 @@ const Question = ({ question, onSubmit, correctAnswer }) => {
           <button
             className="btn btn-success"
             onClick={handleSubmit}
-            disabled={selectedAnswers.length === 0 || timeLeft === 0 || !!correctAnswer}
+            disabled={
+              selectedAnswers.length === 0 || timeLeft === 0 || !!correctAnswer
+            }
           >
             Submit
           </button>
