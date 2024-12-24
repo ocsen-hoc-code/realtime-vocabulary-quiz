@@ -89,7 +89,7 @@ class SocketServer {
             user_uuid: socket.user.user_uuid,
             fullname: socket.user.fullname,
             score: result.score,
-            correct_answers: correct_answers, // Fixed typo
+            correct_answers: correct_answers,
           });
         }
       } catch (error) {

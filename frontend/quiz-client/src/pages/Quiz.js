@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { logout } from "../services/authService";
 import { FaArrowLeft, FaSignOutAlt } from "react-icons/fa";
@@ -6,24 +6,80 @@ import {
   getQuizzeByUUID,
   getQuizzeLogs,
   getQuizzeStatus,
+  getTopScores,
 } from "../services/quizService";
 import { getQuestionByUUID } from "../services/questionService";
 import Question from "../components/Question";
+import Leaderboard from "../components/Leaderboard";
 import { io } from "socket.io-client";
 
 const Quiz = () => {
-  const { id } = useParams(); // Extract the quiz ID from the route parameters
-  const [quiz, setQuiz] = useState(null); // Store quiz information
-  const [currentQuestion, setCurrentQuestion] = useState(null); // Store the current question
-  const [correctAnswer, setCorrectAnswer] = useState(null); // Store the correct answer
-  const [score, setScore] = useState(0); // Store the user's score
-  const [error, setError] = useState(null); // Handle errors
-  const [isTestFinished, setIsTestFinished] = useState(false); // Track test completion state
-  const [isLoadingQuestion, setIsLoadingQuestion] = useState(false); // Track lazy loading state
-  const navigate = useNavigate(); // Navigation hook
-  const socketRef = useRef(null); // Reference for WebSocket connection
+  const { id } = useParams();
+  const [quiz, setQuiz] = useState(null);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [correctAnswer, setCorrectAnswer] = useState(null);
+  const [score, setScore] = useState(0);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [error, setError] = useState(null);
+  const [isTestFinished, setIsTestFinished] = useState(false);
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
+  const navigate = useNavigate();
+  const socketRef = useRef(null);
 
-  // Fetch initial quiz data and score
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      const response = await getTopScores(id);
+      if (response.status === 200) {
+        setLeaderboard(
+          response.data
+            .map(({ fullname, score }) => ({ username: fullname, score }))
+            .sort((a, b) => b.score - a.score) // Sort by score descending
+        );
+      } else {
+        console.error("Failed to fetch leaderboard data:", response);
+        setLeaderboard([]);
+      }
+    } catch (err) {
+      console.error("Error fetching leaderboard:", err.message);
+      setLeaderboard([]);
+    }
+  }, [id]);
+
+  const updateLeaderboard = (username, newScore) => {
+    setLeaderboard((prevLeaderboard) => {
+      const existingUserIndex = prevLeaderboard.findIndex(
+        (user) => user.username === username
+      );
+      let updatedLeaderboard = [...prevLeaderboard];
+  
+      if (existingUserIndex !== -1) {
+        // Update score if user exists
+        updatedLeaderboard[existingUserIndex].score = Math.max(
+          updatedLeaderboard[existingUserIndex].score,
+          newScore
+        );
+      } else {
+        // Add new user if not in the leaderboard
+        updatedLeaderboard.push({ username, score: newScore });
+      }
+  
+      // Sort by score descending
+      updatedLeaderboard.sort((a, b) => {
+        if (b.score === a.score) {
+          // Prioritize the newly added username if scores are equal
+          if (b.username === username) return 1;
+          if (a.username === username) return -1;
+          return a.username.localeCompare(b.username); // Default alphabetical order
+        }
+        return b.score - a.score;
+      });
+  
+      // Keep only top 10 scores
+      return updatedLeaderboard.slice(0, 10);
+    });
+  };
+  
+
   useEffect(() => {
     const fetchQuizData = async () => {
       try {
@@ -33,21 +89,19 @@ const Quiz = () => {
         let currentQuestionUUID;
         let fetchedScore = 0;
 
-        // Try to fetch quiz logs
         try {
           const logResponse = await getQuizzeLogs(id);
           if (logResponse.status === 200) {
             currentQuestionUUID = logResponse.data.current_question_uuid;
-            fetchedScore = logResponse.data.score || 0; // Get score from logs
+            fetchedScore = logResponse.data.score || 0;
           }
         } catch (logError) {
-          // If logs are unavailable, fallback to quiz status
           if (logError.response && logError.response.status === 404) {
             const statusResponse = await getQuizzeStatus(id);
             if (statusResponse.status === 200) {
               currentQuestionUUID =
                 statusResponse.data.data.current_question_uuid;
-              fetchedScore = statusResponse.data.data.score || 0; // Get score from status
+              fetchedScore = statusResponse.data.data.score || 0;
             } else {
               throw new Error("Unable to fetch quiz status.");
             }
@@ -61,14 +115,14 @@ const Quiz = () => {
           currentQuestionUUID === "00000000-0000-0000-0000-000000000000"
         ) {
           setIsTestFinished(true);
-          setScore(fetchedScore); // Update score
+          setScore(fetchedScore);
+          await fetchLeaderboard();
           return;
         }
 
-        // Fetch the current question
         const question = await getQuestionByUUID(id, currentQuestionUUID);
         setCurrentQuestion(question);
-        setScore(fetchedScore); // Update score
+        setScore(fetchedScore);
       } catch (err) {
         console.error("❌ Error fetching quiz data:", err.message);
         setError("Failed to load quiz data. Please try again later.");
@@ -76,9 +130,9 @@ const Quiz = () => {
     };
 
     fetchQuizData();
-  }, [id]);
+    fetchLeaderboard();
+  }, [id, fetchLeaderboard]);
 
-  // Setup WebSocket and handle events
   useEffect(() => {
     if (!socketRef.current) {
       socketRef.current = io("http://127.0.0.1:8082", {
@@ -92,17 +146,15 @@ const Quiz = () => {
     socket.emit("join_quiz", id);
 
     socket.on("update_result", (data) => {
-      console.log("Received update_result:", data);
-
-      // Update score from WebSocket event
       if (data.result && data.result.score !== undefined) {
         setScore(data.result.score);
+        const storedFullName = localStorage.getItem("fullname") || "Guest User";
+        updateLeaderboard(storedFullName, data.result.score);
       }
 
-      // Display correct answer for 2 seconds
       setCorrectAnswer(data.correct_answers);
       setTimeout(async () => {
-        setCorrectAnswer(null); // Clear correct answer
+        setCorrectAnswer(null);
         try {
           if (!data.result.current_question_uuid) {
             setIsTestFinished(true);
@@ -121,7 +173,11 @@ const Quiz = () => {
         } finally {
           setIsLoadingQuestion(false);
         }
-      }, 500); // 2-second delay
+      }, 1000);
+    });
+
+    socket.on("update_leaderboard", (data) => {
+      updateLeaderboard(data.fullname, data.score);
     });
 
     return () => {
@@ -165,47 +221,50 @@ const Quiz = () => {
           <FaSignOutAlt className="me-2" /> Logout
         </button>
       </div>
-
-      {isTestFinished ? (
-        <div
-          className="d-flex justify-content-center align-items-center"
-          style={{ height: "50vh", textAlign: "center" }}
-        >
-          <div>
-            <h1 className="text-success">Test Finished!</h1>
-            <p className="text-muted">Thank you for completing the quiz.</p>
-            <h2>Your Score: {score}</h2>
+      <div className="row">
+        <div className="col-md-8 mb-4">
+          {isTestFinished ? (
+            <div className="card p-4 shadow">
+              <h1 className="text-success text-center">Test Finished!</h1>
+              <p className="text-muted text-center">Thank you for completing the quiz.</p>
+              <h2 className="text-center">Your Score: {score}</h2>
+            </div>
+          ) : isLoadingQuestion ? (
+            <div className="text-center">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading next question...</span>
+              </div>
+              <p className="mt-3 text-muted">Loading next question...</p>
+            </div>
+          ) : quiz && currentQuestion ? (
+            <div className="card p-4 shadow">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h1 className="text-primary mb-0">{quiz.title}</h1>
+                <h4 className="mb-0">Score: {score}</h4>
+              </div>
+              <Question
+                question={currentQuestion}
+                correctAnswer={correctAnswer}
+                onSubmit={handleSubmit}
+              />
+            </div>
+          ) : error ? (
+            <div className="alert alert-danger text-center">{error}</div>
+          ) : (
+            <div className="text-center">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="mt-3 text-muted">Loading...</p>
+            </div>
+          )}
+        </div>
+        <div className="col-md-4">
+          <div className="card shadow p-3">
+            <Leaderboard scores={leaderboard} />
           </div>
         </div>
-      ) : isLoadingQuestion ? (
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading next question...</span>
-          </div>
-          <p className="mt-3 text-muted">Loading next question...</p>
-        </div>
-      ) : quiz && currentQuestion ? (
-        <div className="card shadow-sm p-4">
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h1 className="text-primary mb-0">{quiz.title}</h1>
-            <h4 className="mb-0">Score: {score}</h4>
-          </div>
-          <Question
-            question={currentQuestion}
-            correctAnswer={correctAnswer} // Pass the correct answer
-            onSubmit={handleSubmit}
-          />
-        </div>
-      ) : error ? (
-        <div className="alert alert-danger text-center">{error}</div>
-      ) : (
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3 text-muted">Loading...</p>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
