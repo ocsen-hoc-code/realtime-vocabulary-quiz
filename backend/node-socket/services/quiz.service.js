@@ -11,7 +11,7 @@ require("dotenv").config();
  * @param {Object} answers - The user's answer input.
  * @returns {Object} An object containing the operation result and updated user data.
  */
-const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
+const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisClient) => {
   try {
     const currentTime = Date.now();
     let updatedUserQuiz = null;
@@ -23,7 +23,7 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
       }),
       scyllaRepo.selectRecords(
         "user_quizs_by_user",
-        ["score", "created_at", "updated_at", "fullname", "current_question_uuid"],
+        ["user_uuid", "score", "created_at", "updated_at", "fullname", "current_question_uuid"],
         { quiz_uuid: quizUUID, user_uuid: userUUID }
       ),
       scyllaRepo.selectRecords(
@@ -35,8 +35,8 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
         }
       ),
       scyllaRepo.selectRecords(
-        "user_quizs",
-        ["user_uuid", "score", "created_at", "updated_at", "fullname", "current_question_uuid"],
+        "user_quizs_by_updated_at",
+        ["user_uuid", "score", "fullname", "created_at"],
         { quiz_uuid: quizUUID },
         10
       ),
@@ -59,12 +59,6 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
     const { score, fullname, created_at } = userQuizResult[0];
     const quizEndTime = new Date(created_at).getTime() + totalTime;
 
-    // Check if the quiz time has expired
-    // if (currentTime > quizEndTime) {
-    //   logger.warn("❌ Quiz time has expired.");
-    //   return { success: false, result: userQuizResult[0] };
-    // }
-
     // Extract correct answers and question score
     const correctAnswers = questionResult[0].answers;
     const questionScore = questionResult[0].score;
@@ -79,14 +73,12 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
     // Determine if the user has a top score
     let isTopScore = false;
     if (updatedScore > 0) {
-      // Check if topScoresResult is empty
       if (topScoresResult.length === 0) {
         isTopScore = true; // Automatically true if no top scores exist
       } else {
-        // Check if updatedScore is greater than or equal to any score in topScoresResult
         isTopScore = topScoresResult.some((user) => {
           if (user.user_uuid === userUUID && user.score === updatedScore) {
-            return false; // Same user with the same score, not considered as a new top score
+            return false; // Same user with the same score
           }
           return updatedScore >= user.score;
         });
@@ -99,8 +91,8 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
       score: score,
       user_uuid: userUUID,
     });
-
-    await scyllaRepo.insertRecord(
+    const updatedAt = new Date();
+    scyllaRepo.insertRecord(
       "user_quizs",
       {
         quiz_uuid: quizUUID,
@@ -109,7 +101,7 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
         fullname,
         current_question_uuid: nextQuestionUUID,
         created_at,
-        updated_at: new Date(),
+        updated_at: updatedAt,
       },
       [
         "quiz_uuid",
@@ -121,24 +113,59 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
         "updated_at",
       ]
     );
-
-    await scyllaRepo.insertRecord(
+    
+    scyllaRepo.insertRecord(
       "user_answers",
       {
         quiz_uuid: quizUUID,
         user_uuid: userUUID,
         question_uuid: questionUUID,
         answers,
-        answer_time: new Date(),
+        answer_time: updatedAt,
       },
-      [
-        "quiz_uuid",
-        "user_uuid",
-        "question_uuid",
-        "answers",
-        "answer_time"
-      ]
+      ["quiz_uuid", "user_uuid", "question_uuid", "answers", "answer_time"]
     );
+
+    // If the user is a top scorer, update Redis
+    if (isTopScore) {
+      const topScoresKey = `top_scores:${quizUUID}`;
+      redisClient.del(topScoresKey, (err, reply) => {
+        if (err) {
+          console.error(`❌ Redis delete error: ${err.message}`);
+        } else {
+          console.log(`✅ Redis delete success. Deleted keys: ${reply}`);
+        }
+      });
+      // const updatedTopScores = [
+      //   ...topScoresResult.filter(
+      //     (user) => user.user_uuid != userUUID // Remove the old entry of the user
+      //   ),
+      //   { user_uuid: userUUID, fullname, score: updatedScore, updated_at: updatedAt }, // Add new/updated user
+      // ]
+      //   .sort((a, b) => {
+      //     if (b.score === a.score) {
+      //       return new Date(b.updatedAt) - new Date(a.updatedAt); // Sort by updatedAt descending
+      //     }
+      //     return b.score - a.score; // Sort by score descending
+      //   })
+      //   .slice(0, 10); // Keep top 10
+
+      // // Save to Redis
+      // redisClient.set(
+      //   topScoresKey, // Key
+      //   JSON.stringify(updatedTopScores), // Value
+      //   "EX", // Expiry mode
+      //   300, // Time-to-live in seconds
+      //   (err, reply) => {
+      //     // Callback
+      //     if (err) {
+      //       console.error(`❌ Redis set error: ${err.message}`);
+      //     } else {
+      //       console.log(`✅ Redis set success: ${reply}`);
+      //     }
+      //   }
+      // );
+    }
 
     // Prepare updated user data
     updatedUserQuiz = { ...userQuizResult[0] };
@@ -148,7 +175,6 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
     // Send updated data to Kafka for further processing
     sendKafkaMessage(userUUID, quizUUID, updatedUserQuiz);
 
-    // Return success with updated score and top score status
     return {
       success: true,
       result: updatedUserQuiz,
@@ -156,7 +182,6 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
       is_top_score: isTopScore,
     };
   } catch (error) {
-    // Log any errors that occur during score calculation
     logger.error(`❌ Error calculating score: ${error.message}`);
     return { success: false, result: null };
   }
@@ -175,7 +200,6 @@ const sendKafkaMessage = (userUUID, quizUUID, updatedUserQuiz) => {
   kafkaProducer
     .sendMessage("user_quiz_export", [{ key: messageKey, value: messageValue }])
     .catch((error) => {
-      // Log any Kafka message sending errors
       logger.error(`❌ Failed to send Kafka message: ${error.message}`);
     });
 };

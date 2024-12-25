@@ -64,6 +64,12 @@ var tableQueries = []string{
     FROM user_quizs
     WHERE quiz_uuid IS NOT NULL AND user_uuid IS NOT NULL AND score IS NOT NULL
     PRIMARY KEY (user_uuid, quiz_uuid, score);`,
+	`CREATE MATERIALIZED VIEW IF NOT EXISTS user_quizs_by_updated_at AS
+	SELECT quiz_uuid, score, user_uuid, fullname, current_question_uuid, created_at, updated_at
+	FROM user_quizs
+	WHERE quiz_uuid IS NOT NULL AND score IS NOT NULL AND user_uuid IS NOT NULL AND updated_at IS NOT NULL
+	PRIMARY KEY (quiz_uuid, score, updated_at, user_uuid)
+	WITH CLUSTERING ORDER BY (score DESC, updated_at DESC);`,
 }
 
 func NewScyllaConfig() (*ScyllaConfig, error) {

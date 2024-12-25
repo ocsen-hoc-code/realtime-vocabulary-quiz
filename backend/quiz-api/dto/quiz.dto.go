@@ -23,8 +23,9 @@ type QuizResponseDTO struct {
 }
 
 type UserQuizDTO struct {
-	UserUUID string `json:"user_uuid"`
-	QuizUUID string `json:"quiz_uuid"`
-	FullName string `json:"fullname"`
-	Score    int    `json:"score"`
+	UserUUID  string    `json:"user_uuid"`
+	QuizUUID  string    `json:"quiz_uuid"`
+	FullName  string    `json:"fullname"`
+	Score     int       `json:"score"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

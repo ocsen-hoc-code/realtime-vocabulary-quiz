@@ -181,7 +181,7 @@ func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string, limit i
 	}
 
 	// Generate cache key based on quizUUID and limit
-	cacheKey := fmt.Sprintf("top_scores:%s:%d", quizUUID, limit)
+	cacheKey := fmt.Sprintf("top_scores:%s", quizUUID)
 
 	// Check if data exists in Redis cache
 	var topScores []*dto.UserQuizDTO
@@ -195,9 +195,9 @@ func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string, limit i
 	conditions := map[string]interface{}{
 		"quiz_uuid": quizUUID,
 	}
-	columns := []string{"user_uuid", "fullname", "score"}
+	columns := []string{"user_uuid", "fullname", "score", "updated_at"}
 
-	records, err := s.scyllaRepo.SelectRecords("user_quizs", columns, conditions, "", limit)
+	records, err := s.scyllaRepo.SelectRecords("user_quizs_by_updated_at", columns, conditions, "", limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve top scores: %w", err)
 	}
@@ -206,16 +206,17 @@ func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string, limit i
 	topScores = make([]*dto.UserQuizDTO, 0, len(records))
 	for _, record := range records {
 		userQuiz := &dto.UserQuizDTO{
-			QuizUUID: quizUUID,
-			UserUUID: record["user_uuid"].(gocql.UUID).String(),
-			FullName: record["fullname"].(string),
-			Score:    record["score"].(int),
+			QuizUUID:  quizUUID,
+			UserUUID:  record["user_uuid"].(gocql.UUID).String(),
+			FullName:  record["fullname"].(string),
+			Score:     record["score"].(int),
+			UpdatedAt: record["updated_at"].(time.Time),
 		}
 		topScores = append(topScores, userQuiz)
 	}
 
 	// Cache the result in Redis with a 30-second expiration
-	err = s.redisClient.Set(ctx, cacheKey, topScores, 30*time.Second)
+	err = s.redisClient.Set(ctx, cacheKey, topScores, 300*time.Second)
 	if err != nil {
 		fmt.Printf("❌ Failed to cache top scores: %v\n", err)
 	}

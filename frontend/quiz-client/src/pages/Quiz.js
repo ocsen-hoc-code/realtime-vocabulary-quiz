@@ -23,8 +23,15 @@ const Quiz = () => {
   const [error, setError] = useState(null);
   const [isTestFinished, setIsTestFinished] = useState(false);
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
+  const [fullname, setFullname] = useState(""); // State to store fullname
   const navigate = useNavigate();
   const socketRef = useRef(null);
+
+  useEffect(() => {
+    // Get fullname from localStorage when the component mounts
+    const storedFullname = localStorage.getItem("fullname") || "Guest User";
+    setFullname(storedFullname);
+  }, []);
 
   const fetchLeaderboard = useCallback(async () => {
     try {
@@ -32,9 +39,13 @@ const Quiz = () => {
       if (response.status === 200) {
         setLeaderboard(
           response.data
-            .map(({ fullname, score }) => ({ username: fullname, score }))
-            .sort((a, b) => b.score - a.score) // Sort by score descending
+            .map(({user_uuid, fullname, score, updated_at }) => ({ user_uuid, username: fullname, score, updated_at }))
         );
+        // setLeaderboard(
+        //   response.data
+        //     .map(({ fullname, score, updated_at }) => ({ username: fullname, score, updated_at }))
+        //     .sort((a, b) => b.score - a.score) // Sort by score descending
+        // );
       } else {
         console.error("Failed to fetch leaderboard data:", response);
         setLeaderboard([]);
@@ -45,10 +56,10 @@ const Quiz = () => {
     }
   }, [id]);
 
-  const updateLeaderboard = (username, newScore) => {
+  const updateLeaderboard = (userUUID,username, newScore, updatedAt) => {
     setLeaderboard((prevLeaderboard) => {
       const existingUserIndex = prevLeaderboard.findIndex(
-        (user) => user.username === username
+        (user) => user.user_uuid === userUUID
       );
       let updatedLeaderboard = [...prevLeaderboard];
   
@@ -58,27 +69,37 @@ const Quiz = () => {
           updatedLeaderboard[existingUserIndex].score,
           newScore
         );
+        updatedLeaderboard[existingUserIndex].updated_at = updatedAt;
       } else {
         // Add new user if not in the leaderboard
-        updatedLeaderboard.push({ username, score: newScore });
+        updatedLeaderboard.push({ user_uuid: userUUID, username, score: newScore, updated_at: updatedAt });
       }
   
-      // Sort by score descending
       updatedLeaderboard.sort((a, b) => {
         if (b.score === a.score) {
-          // Prioritize the newly added username if scores are equal
-          if (b.username === username) return 1;
-          if (a.username === username) return -1;
-          return a.username.localeCompare(b.username); // Default alphabetical order
+          return new Date(b.updated_at) - new Date(a.updated_at); // Sort by updatedAt descending
         }
-        return b.score - a.score;
+        return b.score - a.score; // Sort by score descending
       });
   
-      // Keep only top 10 scores
+      // Keep only top 10 entries
       return updatedLeaderboard.slice(0, 10);
     });
-  };
+  };  
+
+  const checkQuizTime = (createdAt, totalTime) => {
+    const parsedTime = new Date(createdAt).getTime();
   
+    if (isNaN(parsedTime)) {
+      console.error("Invalid created_at format:", createdAt);
+      return false;
+    }
+  
+    const currentTime = Date.now();
+    const endTime = parsedTime + totalTime*1000;
+  
+    return currentTime <= endTime;
+  };
 
   useEffect(() => {
     const fetchQuizData = async () => {
@@ -88,12 +109,16 @@ const Quiz = () => {
 
         let currentQuestionUUID;
         let fetchedScore = 0;
+        let createdAt;
+        let totalTime;
 
         try {
           const logResponse = await getQuizzeLogs(id);
           if (logResponse.status === 200) {
             currentQuestionUUID = logResponse.data.current_question_uuid;
             fetchedScore = logResponse.data.score || 0;
+            createdAt = logResponse.data.created_at;
+            totalTime = quizData.total_time || 0;
           }
         } catch (logError) {
           if (logError.response && logError.response.status === 404) {
@@ -102,12 +127,21 @@ const Quiz = () => {
               currentQuestionUUID =
                 statusResponse.data.data.current_question_uuid;
               fetchedScore = statusResponse.data.data.score || 0;
+              createdAt = statusResponse.data.data.created_at;
+              totalTime = quizData.total_time || 0;
             } else {
               throw new Error("Unable to fetch quiz status.");
             }
           } else {
             throw new Error("Failed to fetch quiz logs.");
           }
+        }
+
+        if (!checkQuizTime(createdAt, totalTime)) {
+          setIsTestFinished(true);
+          setScore(fetchedScore);
+          await fetchLeaderboard();
+          return;
         }
 
         if (
@@ -149,7 +183,7 @@ const Quiz = () => {
       if (data.result && data.result.score !== undefined) {
         setScore(data.result.score);
         const storedFullName = localStorage.getItem("fullname") || "Guest User";
-        updateLeaderboard(storedFullName, data.result.score);
+        updateLeaderboard(data.result.user_uuid, storedFullName, data.result.score, data.result.updated_at);
       }
 
       setCorrectAnswer(data.correct_answers);
@@ -173,11 +207,11 @@ const Quiz = () => {
         } finally {
           setIsLoadingQuestion(false);
         }
-      }, 1000);
+      }, 300);
     });
 
     socket.on("update_leaderboard", (data) => {
-      updateLeaderboard(data.fullname, data.score);
+      updateLeaderboard(data.user_uuid, data.fullname, data.score, data.updated_at);
     });
 
     return () => {
@@ -217,16 +251,21 @@ const Quiz = () => {
         <button className="btn btn-primary text-white" onClick={handleBack}>
           <FaArrowLeft className="me-2" /> Back
         </button>
-        <button className="btn btn-danger" onClick={handleLogout}>
-          <FaSignOutAlt className="me-2" /> Logout
-        </button>
+        <div className="d-flex align-items-center">
+          <span className="me-3 text-primary fw-bold">{fullname}</span>
+          <button className="btn btn-danger" onClick={handleLogout}>
+            <FaSignOutAlt className="me-2" /> Logout
+          </button>
+        </div>
       </div>
       <div className="row">
         <div className="col-md-8 mb-4">
           {isTestFinished ? (
             <div className="card p-4 shadow">
               <h1 className="text-success text-center">Test Finished!</h1>
-              <p className="text-muted text-center">Thank you for completing the quiz.</p>
+              <p className="text-muted text-center">
+                Thank you for completing the quiz.
+              </p>
               <h2 className="text-center">Your Score: {score}</h2>
             </div>
           ) : isLoadingQuestion ? (

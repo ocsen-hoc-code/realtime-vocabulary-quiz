@@ -75,6 +75,7 @@ class SocketServer {
           question_id,
           socket.user.user_uuid,
           answers,
+          RedisClient.getClient()
         );
 
         if (!success) {
@@ -89,6 +90,7 @@ class SocketServer {
             user_uuid: socket.user.user_uuid,
             fullname: socket.user.fullname,
             score: result.score,
+            updated_at: result.updated_at,
             correct_answers: correct_answers,
           });
         }
