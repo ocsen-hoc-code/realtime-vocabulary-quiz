@@ -57,7 +57,15 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisCl
     // Extract quiz duration and user quiz creation time
     const totalTime = quizResult[0].total_time;
     const { score, fullname, created_at } = userQuizResult[0];
-    const quizEndTime = new Date(created_at).getTime() + totalTime;
+    const quizEndTime = new Date(created_at).getTime() + totalTime*1000;
+
+     // Validate if the quiz time has expired
+    if (currentTime > quizEndTime) {
+      return {
+        success: false,
+        result: null,
+      };
+    }
 
     // Extract correct answers and question score
     const correctAnswers = questionResult[0].answers;

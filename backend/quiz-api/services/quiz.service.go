@@ -216,7 +216,7 @@ func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string, limit i
 	}
 
 	// Cache the result in Redis with a 30-second expiration
-	err = s.redisClient.Set(ctx, cacheKey, topScores, 300*time.Second)
+	err = s.redisClient.Set(ctx, cacheKey, topScores, 30*time.Second)
 	if err != nil {
 		fmt.Printf("❌ Failed to cache top scores: %v\n", err)
 	}
