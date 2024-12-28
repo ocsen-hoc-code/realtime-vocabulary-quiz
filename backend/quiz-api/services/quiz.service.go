@@ -169,35 +169,35 @@ func (s *QuizService) QuizStatus(userUUID, quizUUID, fullName string) (*models.U
 	return newUserQuiz, nil
 }
 
-func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string, limit int) ([]*dto.UserQuizDTO, error) {
+func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string) ([]*dto.UserQuizDTO, error) {
 	// Validate input UUID
 	if quizUUID == "" {
 		return nil, fmt.Errorf("invalid quiz_uuid: cannot be empty")
 	}
 
 	// Validate limit, fallback to a default value
-	if limit <= 0 {
-		limit = 10
-	}
+	// if limit <= 0 {
+	// 	limit = 10
+	// }
 
 	// Generate cache key based on quizUUID and limit
-	cacheKey := fmt.Sprintf("top_scores:%s", quizUUID)
+	// cacheKey := fmt.Sprintf("top_scores:%s", quizUUID)
 
 	// Check if data exists in Redis cache
 	var topScores []*dto.UserQuizDTO
-	err := s.redisClient.Get(ctx, cacheKey, &topScores)
-	if err == nil && len(topScores) > 0 {
-		// Cache hit: return the cached result
-		fmt.Println("✅ Cache hit for:", cacheKey)
-		return topScores, nil
-	}
+	// err := s.redisClient.Get(ctx, cacheKey, &topScores)
+	// if err == nil && len(topScores) > 0 {
+	// 	// Cache hit: return the cached result
+	// 	fmt.Println("✅ Cache hit for:", cacheKey)
+	// 	return topScores, nil
+	// }
 
 	conditions := map[string]interface{}{
 		"quiz_uuid": quizUUID,
 	}
 	columns := []string{"user_uuid", "fullname", "score", "updated_at"}
 
-	records, err := s.scyllaRepo.SelectRecords("user_quizs_by_updated_at", columns, conditions, "", limit)
+	records, err := s.scyllaRepo.SelectRecords("user_quizs_by_updated_at", columns, conditions, "", 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve top scores: %w", err)
 	}
@@ -216,10 +216,10 @@ func (s *QuizService) GetTopScores(ctx context.Context, quizUUID string, limit i
 	}
 
 	// Cache the result in Redis with a 30-second expiration
-	err = s.redisClient.Set(ctx, cacheKey, topScores, 30*time.Second)
-	if err != nil {
-		fmt.Printf("❌ Failed to cache top scores: %v\n", err)
-	}
+	// err = s.redisClient.Set(ctx, cacheKey, topScores, 30*time.Second)
+	// if err != nil {
+	// 	fmt.Printf("❌ Failed to cache top scores: %v\n", err)
+	// }
 
 	return topScores, nil
 }

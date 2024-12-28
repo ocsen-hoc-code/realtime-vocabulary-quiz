@@ -20,6 +20,8 @@ export const logout = async () => {
   try {
     const response = await api.get("/logout");
     localStorage.removeItem("token");
+    localStorage.removeItem("fullname");
+    localStorage.removeItem("uuid");
     return { success: true, message: response.data.message };
   } catch (error) {
     return {

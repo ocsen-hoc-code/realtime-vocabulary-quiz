@@ -11,13 +11,13 @@ require("dotenv").config();
  * @param {Object} answers - The user's answer input.
  * @returns {Object} An object containing the operation result and updated user data.
  */
-const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisClient) => {
+const calculateScore = async (quizUUID, questionUUID, userUUID, answers) => {
   try {
     const currentTime = Date.now();
     let updatedUserQuiz = null;
 
     // Fetch quiz, user quiz, and question data in parallel
-    const [quizResult, userQuizResult, questionResult, topScoresResult] = await Promise.all([
+    const [quizResult, userQuizResult, questionResult] = await Promise.all([
       scyllaRepo.selectRecords("quizs", ["total_time"], {
         quiz_uuid: quizUUID,
       }),
@@ -33,12 +33,6 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisCl
           quiz_uuid: quizUUID,
           question_uuid: questionUUID,
         }
-      ),
-      scyllaRepo.selectRecords(
-        "user_quizs_by_updated_at",
-        ["user_uuid", "score", "fullname", "created_at"],
-        { quiz_uuid: quizUUID },
-        10
       ),
     ]);
 
@@ -79,19 +73,19 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisCl
     }
 
     // Determine if the user has a top score
-    let isTopScore = false;
-    if (updatedScore > 0) {
-      if (topScoresResult.length === 0) {
-        isTopScore = true; // Automatically true if no top scores exist
-      } else {
-        isTopScore = topScoresResult.some((user) => {
-          if (user.user_uuid === userUUID && user.score === updatedScore) {
-            return false; // Same user with the same score
-          }
-          return updatedScore >= user.score;
-        });
-      }
-    }
+    // let isTopScore = false;
+    // if (updatedScore > 0) {
+    //   if (topScoresResult.length === 0) {
+    //     isTopScore = true; // Automatically true if no top scores exist
+    //   } else {
+    //     isTopScore = topScoresResult.some((user) => {
+    //       if (user.user_uuid === userUUID && user.score === updatedScore) {
+    //         return false; // Same user with the same score
+    //       }
+    //       return updatedScore >= user.score;
+    //     });
+    //   }
+    // }
 
     // Update user's score in the database
     await scyllaRepo.deleteRecord("user_quizs", {
@@ -135,15 +129,15 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisCl
     );
 
     // If the user is a top scorer, update Redis
-    if (isTopScore) {
-      const topScoresKey = `top_scores:${quizUUID}`;
-      redisClient.del(topScoresKey, (err, reply) => {
-        if (err) {
-          console.error(`❌ Redis delete error: ${err.message}`);
-        } else {
-          console.log(`✅ Redis delete success. Deleted keys: ${reply}`);
-        }
-      });
+    // if (isTopScore) {
+    //   const topScoresKey = `top_scores:${quizUUID}`;
+    //   redisClient.del(topScoresKey, (err, reply) => {
+    //     if (err) {
+    //       console.error(`❌ Redis delete error: ${err.message}`);
+    //     } else {
+    //       console.log(`✅ Redis delete success. Deleted keys: ${reply}`);
+    //     }
+    //   });
       // const updatedTopScores = [
       //   ...topScoresResult.filter(
       //     (user) => user.user_uuid != userUUID // Remove the old entry of the user
@@ -173,7 +167,8 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisCl
       //     }
       //   }
       // );
-    }
+    // }
+    
 
     // Prepare updated user data
     updatedUserQuiz = { ...userQuizResult[0] };
@@ -187,7 +182,8 @@ const calculateScore = async (quizUUID, questionUUID, userUUID, answers, redisCl
       success: true,
       result: updatedUserQuiz,
       correct_answers: correctAnswers,
-      is_top_score: isTopScore,
+      is_shoudl_update: updatedScore > score,
+      // is_top_score: isTopScore,
     };
   } catch (error) {
     logger.error(`❌ Error calculating score: ${error.message}`);
@@ -212,4 +208,25 @@ const sendKafkaMessage = (userUUID, quizUUID, updatedUserQuiz) => {
     });
 };
 
-module.exports = { calculateScore };
+const getUserQuiz = async (quizUUID, userUUID) => {
+  try {
+    const userQuizResult = await scyllaRepo.selectRecords(
+      "user_quizs_by_user",
+      [
+        "user_uuid",
+        "score",
+        "created_at",
+        "updated_at",
+        "fullname",
+        "current_question_uuid",
+      ],
+      { quiz_uuid: quizUUID, user_uuid: userUUID }
+    );
+    return userQuizResult.length > 0 ? userQuizResult[0] : null;
+  } catch (error) {
+    logger.error(`❌ Error calculating score: ${error.message}`);
+    return null;
+  }
+};
+
+module.exports = { calculateScore, getUserQuiz};

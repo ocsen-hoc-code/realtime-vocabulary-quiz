@@ -36,8 +36,6 @@ const Dashboard = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      localStorage.removeItem("userToken");
-      localStorage.removeItem("fullname");
       showToast("Logged out successfully", "info");
       window.location.href = "/login";
     } catch (error) {

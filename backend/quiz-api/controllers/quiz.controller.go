@@ -172,7 +172,7 @@ func (ctrl *QuizController) GetQuizStatus(c *gin.Context) {
 func (ctrl *QuizController) GetTopScores(c *gin.Context) {
 	quizUUID := c.Param("quiz-uuid")
 
-	result, err := ctrl.quizService.GetTopScores(c, quizUUID, 10)
+	result, err := ctrl.quizService.GetTopScores(c, quizUUID)
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, err.Error())
 		return

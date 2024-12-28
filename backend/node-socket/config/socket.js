@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const RedisClient = require("./redis");
-const { calculateScore } = require("../services/quiz.service");
+const { calculateScore, getUserQuiz } = require("../services/quiz.service");
 const logger = require("../utils/logger"); // Replace console.log with a proper logger
 
 class SocketServer {
@@ -62,6 +62,18 @@ class SocketServer {
   }
 
   handleUpdateScore(socket) {
+    socket.on("user_online", async ({ quiz_id }) => {
+      const result = await getUserQuiz(quiz_id, socket.user.user_uuid);
+      if (result) {
+        socket.to(quiz_id).emit("update_leaderboard", {
+          user_uuid: socket.user.user_uuid,
+          fullname: socket.user.fullname,
+          score: result.score,
+          updated_at: result.updated_at,
+        });
+      }
+    });
+
     socket.on("update_score", async ({ quiz_id, question_id, answers }) => {
       if (!quiz_id || !question_id || (!answers && answers != '') || !socket.user?.user_uuid) {
         logger.error("❌ Invalid payload or unauthenticated user");
@@ -70,12 +82,11 @@ class SocketServer {
       }
 
       try {
-        const { success, result, correct_answers, is_top_score } = await calculateScore(
+        const { success, result, correct_answers, is_shoudl_update } = await calculateScore(
           quiz_id,
           question_id,
           socket.user.user_uuid,
-          answers,
-          RedisClient.getClient()
+          answers
         );
 
         if (!success) {
@@ -85,13 +96,12 @@ class SocketServer {
 
         socket.emit("update_result", { result, correct_answers });
 
-        if (socket.user?.user_uuid && result.score > 0 && is_top_score) {
+        if (socket.user?.user_uuid && is_shoudl_update) {
           socket.to(quiz_id).emit("update_leaderboard", {
             user_uuid: socket.user.user_uuid,
             fullname: socket.user.fullname,
             score: result.score,
             updated_at: result.updated_at,
-            correct_answers: correct_answers,
           });
         }
       } catch (error) {

@@ -39,7 +39,7 @@ const Quiz = () => {
       if (response.status === 200) {
         setLeaderboard(
           response.data
-            .map(({user_uuid, fullname, score, updated_at }) => ({ user_uuid, username: fullname, score, updated_at }))
+            .map(({user_uuid, fullname, score, updated_at }) => ({ user_uuid, fullname, score, updated_at }))
         );
         // setLeaderboard(
         //   response.data
@@ -56,7 +56,7 @@ const Quiz = () => {
     }
   }, [id]);
 
-  const updateLeaderboard = (userUUID,username, newScore, updatedAt) => {
+  const updateLeaderboard = (userUUID, fullName, newScore, updatedAt) => {
     setLeaderboard((prevLeaderboard) => {
       const existingUserIndex = prevLeaderboard.findIndex(
         (user) => user.user_uuid === userUUID
@@ -72,7 +72,7 @@ const Quiz = () => {
         updatedLeaderboard[existingUserIndex].updated_at = updatedAt;
       } else {
         // Add new user if not in the leaderboard
-        updatedLeaderboard.push({ user_uuid: userUUID, username, score: newScore, updated_at: updatedAt });
+        updatedLeaderboard.push({ user_uuid: userUUID, fullname: fullName, score: newScore, updated_at: updatedAt });
       }
   
       updatedLeaderboard.sort((a, b) => {
@@ -83,7 +83,8 @@ const Quiz = () => {
       });
   
       // Keep only top 10 entries
-      return updatedLeaderboard.slice(0, 10);
+      // return updatedLeaderboard.slice(0, 10);
+      return updatedLeaderboard;
     });
   };  
 
@@ -136,6 +137,12 @@ const Quiz = () => {
             throw new Error("Failed to fetch quiz logs.");
           }
         }
+        if (socketRef.current) {
+          socketRef.current.emit("user_online", { quiz_id: id });
+        }
+        const storedFullname = localStorage.getItem("fullname") || "Guest User";
+        const storedUserUUID = localStorage.getItem("uuid") || "";
+        updateLeaderboard(storedUserUUID, storedFullname, fetchedScore, createdAt);
 
         if (!checkQuizTime(createdAt, totalTime)) {
           setIsTestFinished(true);
@@ -182,8 +189,7 @@ const Quiz = () => {
     socket.on("update_result", (data) => {
       if (data.result && data.result.score !== undefined) {
         setScore(data.result.score);
-        const storedFullName = localStorage.getItem("fullname") || "Guest User";
-        updateLeaderboard(data.result.user_uuid, storedFullName, data.result.score, data.result.updated_at);
+        updateLeaderboard(data.result.user_uuid, data.result.fullname, data.result.score, data.result.updated_at);
       }
 
       setCorrectAnswer(data.correct_answers);

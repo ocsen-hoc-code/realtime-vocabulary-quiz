@@ -9,7 +9,7 @@ const Leaderboard = ({ scores }) => {
           <thead className="table-primary">
             <tr>
               <th style={{ width: "10%" }}>Rank</th>
-              <th style={{ width: "50%" }}>Username</th>
+              <th style={{ width: "50%" }}>Full Name</th>
               <th style={{ width: "20%" }}>Score</th>
             </tr>
           </thead>
@@ -18,7 +18,7 @@ const Leaderboard = ({ scores }) => {
               scores.map((user, index) => (
                 <tr key={index}>
                   <td>{index + 1}</td>
-                  <td>{user.username}</td>
+                  <td>{user.fullname}</td>
                   <td>{user.score}</td>
                 </tr>
               ))
